@@ -1,0 +1,2308 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG de Produtividade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="routine_styles.css">
+    <link rel="stylesheet" href="combat_anim.css">
+    <style>
+        /* Boss Widget */
+        .boss-widget {
+            background: linear-gradient(45deg, #2a2a2a, #1a1a1a);
+            border: 1px solid #ff5252;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            margin-top: 10px;
+        }
+        
+        .boss-timer-container {
+            flex: 1;
+        }
+        
+        .boss-title {
+            font-size: 0.9rem;
+            color: #ff5252;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .boss-timer-text {
+            font-size: 1.2rem;
+            font-family: monospace;
+            color: #ffd700;
+        }
+
+        .boss-action-btn {
+            background: #ff5252;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+
+        .boss-action-btn:hover { background: #ff1a1a; transform: scale(1.05); }
+        .boss-action-btn:disabled { 
+            background: #555; 
+            color: #aaa; 
+            cursor: not-allowed; 
+            transform: none;
+            box-shadow: none;
+        }
+
+        .boss-info-btn {
+            background: #2196f3; /* Blue for Info */
+            color: white;
+            border: none;
+            width: 40px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .boss-info-btn:hover { background: #1976d2; transform: scale(1.05); }
+
+        /* Combat Styles */
+        .combat-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            gap: 20px;
+        }
+        
+        .combat-arena {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('assets/avatars/arena.jpg');
+            background-size: cover;
+            background-position: center;
+            border-radius: 10px;
+            height: 300px;
+            position: relative;
+        }
+
+        .combat-entity {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 120px;
+            position: relative;
+        }
+
+        .combat-avatar {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
+        }
+
+        .boss-avatar {
+            width: 150px;
+            height: 150px;
+            filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.6));
+        }
+
+        .health-bar-container {
+            width: 100%;
+            height: 10px;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .health-bar-fill {
+            height: 100%;
+            background: #ff5252;
+            transition: width 0.3s ease;
+        }
+
+        .combat-stats {
+            margin-top: 5px;
+            font-size: 0.8rem;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        .combat-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+        }
+
+        .skill-btn {
+            background: #2a2a2a;
+            border: 1px solid #ffd700;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        .skill-btn:hover:not(:disabled) {
+            background: #3a3a3a;
+            transform: translateY(-2px);
+        }
+
+        .skill-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: #555;
+        }
+
+        .skill-cd {
+            font-size: 0.7rem;
+            color: #aaa;
+        }
+
+        .combat-log {
+            height: 100px;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid #444;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            color: #ddd;
+            border-radius: 5px;
+        }
+        
+        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 2px; }
+        .player-dmg { color: #69f0ae; }
+        .enemy-dmg { color: #ff5252; }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="avatar-container">
+            <img id="avatar" src="assets/avatars/lv0.png" alt="Avatar">
+        </div>
+
+        <div class="player-name" id="playerName">Jogador</div>
+        <div class="class-title" id="classTitle">Rookie</div>
+        <div class="level-badge">Nível <span id="level">0</span></div>
+        <div class="gold-badge" id="goldDisplay">0 💰</div>
+
+        <div class="hp-container">
+            <div class="hp-label">
+                <span>HP</span>
+                <span><span id="currentHp">100</span> / <span id="maxHp">100</span></span>
+            </div>
+            <div class="hp-bar-bg">
+                <div class="hp-bar-fill" id="hpBar" style="width: 100%;"></div>
+            </div>
+        </div>
+
+        <div class="xp-container">
+            <div class="xp-label">
+                <span>XP</span>
+                <span><span id="currentXp">0</span> / <span id="maxXp">100</span></span>
+            </div>
+            <div class="xp-bar-bg">
+                <div class="xp-bar-fill" id="xpBar"></div>
+            </div>
+        </div>
+
+        <div class="attributes">
+            <div class="attribute">
+                <span class="attr-name">💪 Força</span>
+                <span class="attr-value" id="strAttr">0</span>
+            </div>
+            <div class="attribute">
+                <span class="attr-name">📚 Disciplina</span>
+                <span class="attr-value" id="dexAttr">0</span>
+            </div>
+            <div class="attribute">
+                <span class="attr-name">🧠 Inteligência</span>
+                <span class="attr-value" id="intAttr">0</span>
+            </div>
+        </div>
+        
+        <button class="history-btn" onclick="openHistoryModal()">📜 Histórico de Missões</button>
+        <button class="history-btn" style="background-color: #9c27b0; margin-top: 5px;" onclick="openRoutineModal()">📅 Rotina Semanal</button>
+        <button class="history-btn" style="background-color: #2a2a2a; border: 1px solid #ffd700; margin-top: 5px;" onclick="openSkillsModal()">📜 Grimório</button>
+        <button class="history-btn" style="background-color: #e67e22; border: 1px solid #d35400; margin-top: 5px;" onclick="openShopModal()">🛒 Loja</button>
+        <button class="admin-toggle-btn" onclick="toggleAdminModal()">⚙️ Admin</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        
+        <!-- Boss Widget -->
+        <div class="boss-widget" id="bossWidget">
+            <div class="boss-timer-container">
+                <div class="boss-title" id="bossNameDisplay">👹 CHEFE SEMANAL</div>
+                <div class="boss-timer-text" id="bossTimer">--:--:--</div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="boss-info-btn" onclick="showBossInfo()">ℹ️</button>
+                <button class="boss-action-btn" id="bossEnterBtn" onclick="startCombat()">DUELAR</button>
+            </div>
+        </div>
+
+        <!-- Daily Quests Section -->
+        <div class="daily-quests-section">
+            <div class="daily-quests-title">
+                🌟 Missões Diárias (Escolha a sua)
+            </div>
+            <div id="dailyQuestsList" class="daily-quests-container">
+                <!-- Daily quests will be injected here -->
+            </div>
+        </div>
+
+        <!-- Grimorio Button moved to sidebar -->
+
+        <h2>Quadro de Missões</h2>
+
+        <!-- Manual input removed as per new Weekly Routine focus -->
+
+        <div class="quest-list" id="questList">
+            <!-- Quests will be added here -->
+        </div>
+    </div>
+
+    <!-- Category Selection Modal -->
+    <div id="categoryModal" class="modal-overlay">
+        <div class="modal-content category-modal-content">
+            <div class="modal-title">Escolha o Tipo da Missão</div>
+            <p id="pendingQuestName" style="color: #aaa; margin-bottom: 20px; font-style: italic;"></p>
+            
+            <div class="category-options">
+                <div class="category-card type-forca" onclick="confirmAddQuest('forca')">
+                    <div class="cat-icon">💪</div>
+                    <div class="cat-name">Força</div>
+                    <div class="cat-desc">Exercícios, Saúde, Físico</div>
+                </div>
+                <div class="category-card type-disciplina" onclick="confirmAddQuest('disciplina')">
+                    <div class="cat-icon">📚</div>
+                    <div class="cat-name">Disciplina</div>
+                    <div class="cat-desc">Estudos, Rotina, Foco</div>
+                </div>
+                <div class="category-card type-inteligencia" onclick="confirmAddQuest('inteligencia')">
+                    <div class="cat-icon">🧠</div>
+                    <div class="cat-name">Inteligência</div>
+                    <div class="cat-desc">Trabalho, Projetos, Leitura</div>
+                </div>
+            </div>
+            <button class="btn-close" onclick="closeCategoryModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Duration Selection Modal -->
+    <div id="durationModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">Tempo de Dedicação</div>
+            <p>Por quanto tempo você fará esta atividade?</p>
+            <p id="dailyQuestTargetName" style="color: #ffd700; font-weight: bold; margin-bottom: 15px;"></p>
+            
+            <div class="duration-options">
+                <div class="duration-btn" onclick="confirmDailyQuest(30)">
+                    <span class="duration-time">30m</span>
+                    <span class="duration-xp">+20 XP</span>
+                </div>
+                <div class="duration-btn" onclick="confirmDailyQuest(60)">
+                    <span class="duration-time">1h</span>
+                    <span class="duration-xp">+45 XP</span>
+                </div>
+                <div class="duration-btn" onclick="confirmDailyQuest(120)">
+                    <span class="duration-time">2h</span>
+                    <span class="duration-xp">+95 XP</span>
+                </div>
+                <div class="duration-btn" onclick="confirmDailyQuest(180)">
+                    <span class="duration-time">3h</span>
+                    <span class="duration-xp">+150 XP</span>
+                </div>
+            </div>
+            <button class="btn-close" onclick="closeDurationModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Reroll Confirmation Modal -->
+    <div id="rerollModal" class="modal-overlay">
+        <div class="modal-content reroll-modal-content">
+            <div class="modal-title">Rolar os Dados do Destino?</div>
+            <div class="reroll-dice-anim">🎲</div>
+            <p style="margin-bottom: 20px;">Deseja gastar sua única troca diária para gerar novas missões?</p>
+            <p style="color: #666; font-size: 0.8rem; margin-bottom: 20px;">(Cuidado: As missões atuais serão perdidas)</p>
+            
+            <div class="admin-btn-group">
+                <button class="btn-danger" style="background-color: #ffd700; color: #000;" onclick="confirmReroll()">Sim, Rolar!</button>
+                <button class="btn-close" onclick="closeRerollModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Modal -->
+    <div id="adminModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">Administração</div>
+            <p>Cuidado! Essas ações não podem ser desfeitas.</p>
+            
+            <div class="admin-btn-group">
+                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                    <input type="number" id="adminXpInput" placeholder="Qtd XP" style="padding: 10px; width: 100px;">
+                    <button class="btn-danger" onclick="addCustomXP()" style="flex: 1;">Add XP</button>
+                </div>
+                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                    <input type="number" id="adminGoldInput" placeholder="Qtd Ouro" style="padding: 10px; width: 100px;">
+                    <button class="btn-danger" onclick="addCustomGold()" style="flex: 1; background-color: #ffd700; color: #000;">Add Gold</button>
+                </div>
+                <button class="btn-danger" onclick="debugAdvanceTime()">🕒 Avançar 24h (Regen HP)</button>
+                <button class="btn-danger" onclick="resetXP()">Resetar XP e Nível</button>
+                <button class="btn-danger" onclick="resetAttributes()">Resetar Atributos</button>
+                <button class="btn-danger" onclick="fullReset()">⚠️ Resetar TUDO (Novo Jogo)</button>
+                <button class="btn-danger" onclick="openTutorial(); toggleAdminModal()">📖 Ver Tutorial</button>
+                <button class="btn-danger" style="background: #ff5252; color: white;" onclick="startCombat(true)">⚔️ Testar DUELO</button>
+                <button class="btn-close" onclick="toggleAdminModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div id="tutorialModal" class="modal-overlay">
+        <div class="modal-content tutorial-content">
+            <div class="modal-title">📜 Guia do Aventureiro</div>
+            
+            <div class="tutorial-step">
+                <h3>⏳ O Tempo é Cruel</h3>
+                <p>Toda missão tem um prazo de <strong>24 horas reais</strong>. O relógio não para!</p>
+            </div>
+            
+            <div class="tutorial-step">
+                <h3>❤️ Cuide do seu HP</h3>
+                <p>Se uma missão expirar, você perde <strong>15 HP</strong>. Se cancelar muitas missões no mesmo dia, também perde vida.</p>
+                <p>O HP regenera lentamente (10 pontos por hora).</p>
+            </div>
+
+            <div class="tutorial-step">
+                <h3>⚔️ Evolua</h3>
+                <p>Complete missões para ganhar XP e subir de nível. Seus atributos (Força, Disciplina, Inteligência) aumentam conforme o tipo de missão.</p>
+            </div>
+
+            <div class="tutorial-step">
+                <h3>📅 Rotina Semanal (Novo!)</h3>
+                <p>Configure tarefas que se repetem toda semana (como Academia ou Aulas). O jogo criará essas missões automaticamente para você no dia certo!</p>
+            </div>
+
+            <button class="btn-close" onclick="closeTutorial()">Entendi, configurar Rotina!</button>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">Abandonar Missão?</div>
+            <div id="deleteMessage" class="penalty-warning">
+                <!-- Content injected by JS -->
+            </div>
+            <div class="admin-btn-group">
+                <button class="btn-danger" onclick="confirmDelete()">Sim, desistir</button>
+                <button class="btn-close" onclick="closeDeleteModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal-overlay">
+        <div class="modal-content history-content">
+            <div class="modal-title">📜 Histórico de Aventuras</div>
+            <div class="history-list" id="historyList">
+                <!-- History items will be added here -->
+                <p style="color: #666; text-align: center; margin-top: 20px;">Nenhuma missão completada ainda.</p>
+            </div>
+            <button class="btn-close" onclick="closeHistoryModal()">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Combat Modal -->
+    <div id="combatModal" class="modal-overlay" style="z-index: 1500;">
+        <div class="modal-content" style="max-width: 600px; width: 95%; position: relative;">
+            <!-- Camada de Efeitos Visuais -->
+            <div id="combatFxLayer" class="combat-fx-layer"></div>
+
+            <div class="modal-title">⚔️ DUELO ⚔️</div>
+            
+            <div class="combat-container">
+                <div class="combat-arena">
+                    <!-- Player -->
+                    <div class="combat-entity" id="playerEntity">
+                        <img src="assets/avatars/lv0.gif" id="combatPlayerImg" class="combat-avatar">
+                        <div class="health-bar-container">
+                            <div class="health-bar-fill" id="combatPlayerHpBar" style="width: 100%; background-color: #4caf50;"></div>
+                        </div>
+                        <div class="combat-stats" id="combatPlayerStats">HP: 100/100</div>
+                    </div>
+
+                    <!-- VS -->
+                    <div style="font-size: 2rem; color: #ffd700; font-weight: bold; text-shadow: 2px 2px 0 #000;">VS</div>
+
+                    <!-- Boss -->
+                    <div class="combat-entity" id="bossEntity">
+                        <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHdubjU3amJ6aXF3aG5oZ2J2aW54aGs2eHhuMDY0aXZyYzF4Y3F1diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKrEzvJbsQN96zC/giphy.gif" id="combatBossImg" class="boss-avatar">
+                        <div class="health-bar-container">
+                            <div class="health-bar-fill" id="combatBossHpBar" style="width: 100%;"></div>
+                        </div>
+                        <div class="combat-stats" id="combatBossStats">BOSS: 500/500</div>
+                    </div>
+                </div>
+
+                <div class="combat-log" id="combatLog">
+                    <!-- Logs go here -->
+                </div>
+
+                <div class="combat-controls" id="combatSkills">
+                    <!-- Skills injected by JS -->
+                </div>
+                
+                <button class="btn-danger" style="margin-top: 10px;" onclick="surrenderCombat()">Fugir da Batalha</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skills/Grimoire Modal -->
+    <div id="skillsModal" class="modal-overlay">
+        <div class="modal-content modal-large">
+            <div class="modal-title">📜 Grimório de Habilidades</div>
+            <p>Escolha suas habilidades para o combate. (Max: 4)</p>
+            <div id="skillsList" class="skills-grid">
+                <!-- Skills list -->
+            </div>
+            <button class="btn-close" onclick="closeSkillsModal()">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Shop Modal -->
+    <div id="shopModal" class="modal-overlay">
+        <div class="modal-content modal-large">
+            <div class="modal-title">🛒 Loja de Habilidades</div>
+            <p>Gaste seu Ouro para aprender novas técnicas!</p>
+            
+            <div class="weekday-tabs" style="justify-content: center; margin-bottom: 15px;">
+                <button class="day-tab active" id="shopTabAll" onclick="filterShop('all')">Todos</button>
+                <button class="day-tab" id="shopTabZoran" onclick="filterShop('zoran')">Zoran</button>
+                <button class="day-tab" id="shopTabMagic" onclick="filterShop('magic')">Magia</button>
+            </div>
+
+            <div id="shopList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px; margin-bottom: 20px; max-height: 60vh; overflow-y: auto;">
+                <!-- Shop items -->
+            </div>
+            <button class="btn-close" onclick="closeShopModal()">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Routine Modal -->
+    <div id="routineModal" class="modal-overlay">
+        <div class="modal-content routine-content">
+            <div class="modal-title">📅 Rotina Semanal</div>
+            <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 10px;">Missões aqui são criadas <strong>automaticamente</strong> no dia certo!</p>
+            
+            <div class="weekday-tabs">
+                <button class="day-tab active" onclick="switchRoutineDay(0)">Dom</button>
+                <button class="day-tab" onclick="switchRoutineDay(1)">Seg</button>
+                <button class="day-tab" onclick="switchRoutineDay(2)">Ter</button>
+                <button class="day-tab" onclick="switchRoutineDay(3)">Qua</button>
+                <button class="day-tab" onclick="switchRoutineDay(4)">Qui</button>
+                <button class="day-tab" onclick="switchRoutineDay(5)">Sex</button>
+                <button class="day-tab" onclick="switchRoutineDay(6)">Sab</button>
+            </div>
+
+            <div class="routine-list" id="routineList">
+                <!-- Routine items here -->
+            </div>
+
+            <div class="add-routine-form">
+                <div class="add-routine-row">
+                    <select id="routineCategory" onchange="updateRoutineTasks()">
+                            <option value="forca">Força</option>
+                            <option value="disciplina">Disciplina</option>
+                            <option value="inteligencia">Inteligência</option>
+                    </select>
+                    <select id="routineTaskSelect">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                
+                <div class="add-routine-row">
+                    <div style="display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px; flex: 1;">
+                        <span style="font-size: 0.8rem; color: #aaa;">Das</span>
+                        <input type="time" id="routineStart" style="flex: 1; padding: 5px;">
+                        <span style="font-size: 0.8rem; color: #aaa;">às</span>
+                        <input type="time" id="routineEnd" style="flex: 1; padding: 5px;">
+                    </div>
+                    <button class="add-routine-btn-block" style="background-color: #4caf50; color: white; border: none; padding: 8px; border-radius: 4px; font-weight: bold; cursor: pointer; flex: 0 0 40px;" onclick="addToRoutine()">+</button>
+                </div>
+            </div>
+            
+            <button class="btn-close" onclick="closeRoutineModal()">Fechar</button>
+        </div>
+    </div>
+
+    <!-- RPG Alert Modal -->
+    <div id="rpgAlertModal" class="modal-overlay" style="z-index: 2000;">
+        <div class="modal-content" style="text-align: center; border: 2px solid #ffd700; max-width: 400px;">
+            <div class="modal-title" id="rpgAlertTitle">Aviso</div>
+            <p id="rpgAlertMessage" style="color: #fff; margin: 20px 0; line-height: 1.5; white-space: pre-line;"></p>
+            <button class="btn-danger" style="background-color: #ffd700; color: #000; width: 100%; font-weight: bold;" onclick="closeRpgAlert()">Entendido</button>
+        </div>
+    </div>
+
+    <script src="skills.js"></script>
+    <script>
+        // Game State
+        let player = {
+            name: "Jogador",
+            class: "Rookie", // Nova propriedade
+            level: 0,
+            xp: 0,
+            maxXp: 100,
+            gold: 0, // Nova propriedade
+            hp: 100,
+            maxHp: 100,
+            lastHpRegen: Date.now(),
+            dailyCancellations: 0,
+            lastDailyReset: Date.now(),
+            lastDailyQuestGen: 0, 
+            dailyRerollUsed: false, 
+            tutorialSeen: false,
+            attributes: {
+                forca: 0,
+                disciplina: 0,
+                inteligencia: 0
+            },
+            skills: [] // Habilidades compradas
+        };
+        
+        // Initial Data
+        let quests = [];
+        let dailyQuestsAvailable = []; // Temp storage for current daily quests
+        let weeklyRoutine = { 0:[], 1:[], 2:[], 3:[], 4:[], 5:[], 6:[] };
+
+        const dailyQuestPool = [
+            // Força
+            { text: "Academia", category: "forca", icon: "💪" },
+            { text: "Caminhada", category: "forca", icon: "🚶" },
+            { text: "Corrida", category: "forca", icon: "🏃" },
+            { text: "Flexões", category: "forca", icon: "🏋️", mode: "quantity" },
+            { text: "Abdominais", category: "forca", icon: "🍫", mode: "quantity" },
+            { text: "Alongamento", category: "forca", icon: "🤸", mode: "quantity" },
+            // Inteligência
+            { text: "Estudar", category: "inteligencia", icon: "📖" },
+            { text: "Leitura", category: "inteligencia", icon: "📚" },
+            { text: "Aprender outro idioma", category: "inteligencia", icon: "💻" },
+            { text: "Aprender algo novo", category: "inteligencia", icon: "🧠" },
+            { text: "Escrever Diário", category: "inteligencia", icon: "📝" },
+            { text: "Planejar o Dia", category: "inteligencia", icon: "📅" },
+            // Disciplina
+            { text: "Meditação", category: "disciplina", icon: "🧘" },
+            { text: "Organizar Ambiente", category: "disciplina", icon: "🧹" },
+            { text: "Beber Água (Regrado)", category: "disciplina", icon: "💧", mode: "quantity" },
+            { text: "Sem Redes Sociais", category: "disciplina", icon: "📵" },
+            { text: "Alimentação Saudável", category: "disciplina", icon: "🥗", mode: "quantity" }
+        ];
+
+        // Initialization
+        window.onload = function() {
+            loadGame();
+            checkGameLoop(); // Run checks immediately
+            checkDailyQuestsGen(); // Generate dailies if needed
+            checkRoutineSpawn(); // Check routine immediately on load
+            
+            setInterval(checkGameLoop, 60000); // Run checks every minute
+            setInterval(updateQuestTimers, 1000); // Update timers every second
+            setInterval(updateBossTimer, 1000); // 1s Check for Boss Widget
+            renderInterface();
+            renderQuests();
+            renderDailyQuests(); // Render the daily options
+            updateBossTimer(); // Initial call
+
+            if (!player.tutorialSeen) {
+                openTutorial();
+            }
+        };
+
+        function saveGame() {
+            localStorage.setItem('rpg_player', JSON.stringify(player));
+            localStorage.setItem('rpg_quests', JSON.stringify(quests));
+            localStorage.setItem('rpg_daily_available', JSON.stringify(dailyQuestsAvailable));
+            localStorage.setItem('rpg_weekly_routine', JSON.stringify(weeklyRoutine));
+        }
+
+        function loadGame() {
+            const savedName = localStorage.getItem('rpg_playerName');
+            if (!savedName) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const savedPlayer = localStorage.getItem('rpg_player');
+            const savedQuests = localStorage.getItem('rpg_quests');
+            const savedDailies = localStorage.getItem('rpg_daily_available');
+            const savedRoutine = localStorage.getItem('rpg_weekly_routine');
+
+            if (savedPlayer) {
+                player = JSON.parse(savedPlayer);
+                // Backwards compatibility
+                if (player.hp === undefined) player.hp = 100;
+                if (player.maxHp === undefined) player.maxHp = 100;
+                if (player.lastHpRegen === undefined) player.lastHpRegen = Date.now();
+                if (player.dailyCancellations === undefined) player.dailyCancellations = 0;
+                if (player.lastDailyReset === undefined) player.lastDailyReset = Date.now();
+                if (player.tutorialSeen === undefined) player.tutorialSeen = false;
+                if (player.lastDailyQuestGen === undefined) player.lastDailyQuestGen = 0;
+                if (player.dailyRerollUsed === undefined) player.dailyRerollUsed = false;
+                if (player.lastRoutineCheck === undefined) player.lastRoutineCheck = ""; 
+                // Novos campos
+                if (player.gold === undefined) player.gold = 0;
+                if (player.class === undefined) player.class = "Rookie";
+                
+                // SKILLS MIGRATION
+                if (player.skills && !player.equippedSkills) {
+                    // Old save format where 'skills' meant owned/equipped loosely
+                    player.equippedSkills = player.skills.slice(0, 4); // Take max 4
+                    player.ownedSkills = player.skills; 
+                    delete player.skills; // Remove old field
+                }
+                
+                // Ensure defaults if empty
+                if (!player.equippedSkills) player.equippedSkills = ['soco', 'chute'];
+                if (!player.ownedSkills || player.ownedSkills.length < 4) player.ownedSkills = ['soco', 'chute', 'cura', 'foco']; // Give basics
+                
+            } else {
+                player.name = savedName;
+                // Defaults for new game
+                player.equippedSkills = ['soco', 'chute'];
+                player.ownedSkills = ['soco', 'chute', 'cura', 'foco'];
+            }
+
+            if (savedQuests) {
+                quests = JSON.parse(savedQuests);
+            }
+
+            if (savedDailies) {
+                dailyQuestsAvailable = JSON.parse(savedDailies);
+            }
+
+            if (savedRoutine) {
+                weeklyRoutine = JSON.parse(savedRoutine);
+            }
+        }
+
+        function renderInterface() {
+            document.getElementById('playerName').innerText = player.name;
+            document.getElementById('level').innerText = player.level;
+            
+            // HP Bar
+            document.getElementById('currentHp').innerText = player.hp;
+            document.getElementById('maxHp').innerText = player.maxHp;
+            const hpPercentage = Math.max(0, Math.min(100, (player.hp / player.maxHp) * 100));
+            document.getElementById('hpBar').style.width = hpPercentage + '%';
+
+            // XP Bar
+            document.getElementById('currentXp').innerText = player.xp;
+            document.getElementById('maxXp').innerText = player.maxXp;
+            
+            // Update XP Bar width
+            const percentage = (player.xp / player.maxXp) * 100;
+            document.getElementById('xpBar').style.width = percentage + '%';
+
+            // Gold Display (Novo)
+            const goldDisplay = document.getElementById('goldDisplay');
+            if(goldDisplay) {
+                goldDisplay.innerText = `${player.gold} 💰`;
+            }
+
+            // Update Attributes
+            document.getElementById('strAttr').innerText = player.attributes.forca;
+            document.getElementById('dexAttr').innerText = player.attributes.disciplina;
+            document.getElementById('intAttr').innerText = player.attributes.inteligencia;
+
+            updateAvatar();
+        }
+
+        function updateAvatar() {
+            const img = document.getElementById('avatar');
+            const classTitle = document.getElementById('classTitle');
+            
+            classTitle.innerText = player.class; // Mostra a classe atual
+            
+            // Lógica simples de avatar por enquanto (pode ser expandida)
+            if (player.level < 10) {
+                 img.src = "assets/avatars/lv0.gif";
+                 classTitle.style.color = "#aaa"; 
+            } else {
+                // Exemplo de mudança visual baseada na classe
+                if (player.class === 'Guerreiro') classTitle.style.color = '#ff5252';
+                if (player.class === 'Mago') classTitle.style.color = '#448aff';
+                if (player.class === 'Arqueiro') classTitle.style.color = '#69f0ae';
+            }
+        }
+
+        function renderQuests() {
+            const list = document.getElementById('questList');
+            list.innerHTML = ''; // Clear current list
+            
+            quests.forEach((quest, index) => {
+                if (!quest.completed) {
+                    createQuestElement(quest, index);
+                }
+            });
+        }
+
+        function createQuestElement(quest, index) {
+            const list = document.getElementById('questList');
+            const card = document.createElement('div');
+            let classes = `quest-card type-${quest.category}`;
+            if (quest.completed) classes += ' completed';
+            if (quest.failed) classes += ' failed';
+            
+            card.className = classes;
+            card.onclick = () => completeQuest(card, quest, index);
+            
+            let statusText = "";
+            if (quest.failed) statusText = '<span style="color: #ff5252; font-weight: bold;">(FALHOU)</span> ';
+
+            let timeText = "";
+            if (!quest.completed && !quest.failed) {
+                // Add a specific class and data attribute for real-time updates
+                timeText = `<div class="quest-time" data-created-at="${quest.createdAt}">⏳ Calculando...</div>`;
+            }
+
+            let imgHtml = "";
+            if (quest.category === 'forca') {
+                imgHtml = `<img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHM5dnh2eW92em9zbXg1OHo0NTdhdjBsb2dvNHlmdHprbzE5MXQ5ayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/YaJknABE4uFUY/giphy.gif" class="quest-card-img" alt="Treino">`;
+            } else if (quest.category === 'disciplina') {
+                imgHtml = `<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExeHpvcDRueGl4b3ZxMzkzZGhkNmg5bmN6Y2dqOGxtdGZ5ZDN2eTc5NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/6XX4V0O8a0xdS/giphy.gif" class="quest-card-img" alt="Estudos">`;
+            } else if (quest.category === 'inteligencia') {
+                imgHtml = `<img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXNwbnR5ZG9kZWI1c3gyeHpkOG1remprM3cxYXozc2k5emZwOXpyciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/HmNw5GoyPtaZa/giphy.gif" class="quest-card-img" alt="Inteligência">`;
+            }
+
+            const goldReward = 10 + Math.floor(quest.xp / 5);
+
+            card.innerHTML = `
+                ${imgHtml}
+                <div class="quest-content-wrapper">
+                    <div class="quest-info">
+                        <div class="quest-title">${statusText}${quest.text}</div>
+                        <div class="quest-reward">+${quest.xp} XP | +${goldReward} Ouro 💰 (${quest.category})</div>
+                        ${timeText}
+                    </div>
+                    <button class="delete-quest-btn" onclick="openDeleteModal(event, ${index})">X</button>
+                </div>
+            `;
+            
+            list.appendChild(card);
+            
+            // Trigger an immediate update so "Calculando..." is replaced instantly
+            if (!quest.completed && !quest.failed) {
+                updateQuestTimers();
+            }
+        }
+
+        function updateQuestTimers() {
+            const timerElements = document.querySelectorAll('.quest-time');
+            timerElements.forEach(el => {
+                const createdAt = parseInt(el.getAttribute('data-created-at'));
+                if (createdAt) {
+                    el.innerHTML = `⏳ ${getRemainingTime(createdAt)}`;
+                }
+            });
+        }
+
+        function getRemainingTime(createdAt) {
+            if (!createdAt) return "24h 00m 00s";
+            const now = Date.now();
+            const deadline = createdAt + 86400000; // 24h
+            const diff = deadline - now;
+
+            if (diff <= 0) return "Expirado";
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            // Pad with zeros for better look
+            const h = hours.toString().padStart(2, '0');
+            const m = minutes.toString().padStart(2, '0');
+            const s = seconds.toString().padStart(2, '0');
+
+            return `${h}h ${m}m ${s}s restantes`;
+        }
+
+        function openTutorial() {
+            document.getElementById('tutorialModal').style.display = 'flex';
+        }
+
+        function closeTutorial() {
+            document.getElementById('tutorialModal').style.display = 'none';
+            if (!player.tutorialSeen) {
+                player.tutorialSeen = true;
+                saveGame();
+                // Chains to Routine Modal for first-time setup
+                setTimeout(() => {
+                    showRpgAlert("Configuração Inicial", "⚠️ Vamos configurar sua Rotina Semanal agora!\nAdicione suas atividades fixas para cada dia.");
+                    openRoutineModal();
+                }, 300);
+            }
+        }
+
+        let pendingDeleteIndex = null;
+
+        function openDeleteModal(event, index) {
+            event.stopPropagation();
+            checkDailyReset();
+            
+            pendingDeleteIndex = index;
+            const modal = document.getElementById('deleteModal');
+            const msgContainer = document.getElementById('deleteMessage');
+            
+            let html = "Você tem certeza que deseja abandonar esta missão?";
+            
+            if (player.dailyCancellations < 3) {
+                const remaining = 3 - player.dailyCancellations;
+                html += `<br><br><span style="color: #4caf50">Você ainda tem ${remaining} cancelamento(s) grátis hoje.</span>`;
+            } else {
+                html += `
+                    <span class="penalty-highlight">
+                        ⚠️ PENALIDADE <br>
+                        -5 HP <span class="heart-beat">❤️</span>
+                    </span>
+                `;
+            }
+            
+            msgContainer.innerHTML = html;
+            modal.style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            pendingDeleteIndex = null;
+        }
+
+        // --- Combat System ---
+        // Skills are loaded from skills.js (skillsDB and bossSkillPool)
+
+        let combatState = {
+            active: false,
+            turn: 1,
+            playerHp: 100,
+            playerMaxHp: 100,
+            bossHp: 100,
+            bossMaxHp: 100,
+            bossSkills: [], // As 4 habilidades sorteadas para a luta atual
+            cooldowns: {}, 
+            logs: []
+        };
+
+
+        function openSkillsModal() {
+            const list = document.getElementById('skillsList');
+            list.innerHTML = '';
+            
+            // Render text
+            const countInfo = document.querySelector('#skillsModal p');
+            countInfo.innerText = `Equipadas: ${player.equippedSkills.length} / 4`;
+
+            // List all OWNED skills
+            player.ownedSkills.forEach(skillId => {
+                const skill = skillsDB[skillId];
+                if (!skill) return;
+                
+                const isEquipped = player.equippedSkills.includes(skillId);
+
+                const card = document.createElement('div');
+                card.style.background = isEquipped ? '#1b5e20' : '#333';
+                card.style.border = isEquipped ? '2px solid #4caf50' : '1px solid #555';
+                card.style.padding = '10px';
+                card.style.borderRadius = '5px';
+                card.style.cursor = 'pointer';
+                card.style.transition = 'all 0.2s';
+                card.onclick = () => toggleSkillEquip(skillId);
+
+                card.innerHTML = `
+                    <div style="font-size: 1.5rem;">${skill.icon}</div>
+                    <div style="font-weight: bold; color: ${isEquipped ? '#fff' : '#ffd700'};">${skill.name}</div>
+                    <div style="font-size: 0.8rem;">Dano: ${skill.dmg} | CD: ${skill.text_cd}</div>
+                    <div style="font-size: 0.7rem; color: #aaa;">${skill.desc}</div>
+                    ${isEquipped ? '<div style="font-size:0.7rem; color:#4caf50; font-weight:bold; margin-top:5px;">EQUIPADO</div>' : ''}
+                `;
+                list.appendChild(card);
+            });
+
+            document.getElementById('skillsModal').style.display = 'flex';
+        }
+
+        function toggleSkillEquip(skillId) {
+            const index = player.equippedSkills.indexOf(skillId);
+            
+            if (index !== -1) {
+                // Return if trying to unequip last remaining skill? (Optional prevent empty loadout)
+                 if (player.equippedSkills.length <= 1) {
+                    showRpgAlert("Erro", "Você precisa de pelo menos uma habilidade!");
+                    return;
+                }
+                // Unequip
+                player.equippedSkills.splice(index, 1);
+            } else {
+                // Equip
+                if (player.equippedSkills.length >= 4) {
+                    showRpgAlert("Grimório Cheio", "Você só pode equipar 4 habilidades!");
+                    return;
+                }
+                player.equippedSkills.push(skillId);
+            }
+            
+            saveGame();
+            openSkillsModal(); // Refresh UI
+        }
+
+        function closeSkillsModal() {
+            document.getElementById('skillsModal').style.display = 'none';
+        }
+
+        // === SHOP SYSTEM ===
+        // === SHOP SYSTEM ===
+        let currentShopTab = 'all';
+
+        function openShopModal() {
+            filterShop('all');
+            document.getElementById('shopModal').style.display = 'flex';
+        }
+
+        function filterShop(category) {
+            currentShopTab = category;
+            const list = document.getElementById('shopList');
+            list.innerHTML = '';
+
+            // Update Tabs UI
+            document.querySelectorAll('#shopModal .day-tab').forEach(btn => btn.classList.remove('active'));
+            if(category === 'all') document.getElementById('shopTabAll').classList.add('active');
+            else if(category === 'zoran') document.getElementById('shopTabZoran').classList.add('active');
+            else if(category === 'magic') document.getElementById('shopTabMagic').classList.add('active');
+
+            // Filter skills: not owned AND has a cost > 0 AND matches category
+            const shopSkills = Object.values(skillsDB).filter(skill => {
+                const notOwned = !player.ownedSkills.includes(skill.id);
+                const hasPrice = skill.cost > 0;
+                
+                let matchesCat = true;
+                if (category === 'zoran') matchesCat = (skill.category === 'zoran');
+                if (category === 'magic') matchesCat = (skill.category === 'magic' || skill.category === 'dark'); 
+                
+                return notOwned && hasPrice && matchesCat;
+            });
+
+            if (shopSkills.length === 0) {
+                 list.innerHTML = '<div style="color:#aaa; padding:20px; text-align:center;">Nenhuma habilidade nesta categoria (ou você já comprou tudo!)</div>';
+            } else {
+                shopSkills.forEach(skill => {
+                    // Create Card using new CSS structure
+                    const card = document.createElement('div');
+                    card.className = "shop-card";
+
+                    const canAfford = player.gold >= skill.cost;
+                    
+                    card.innerHTML = `
+                        <div class="shop-card-icon">${skill.icon}</div>
+                        <div class="shop-card-content">
+                            <div class="shop-card-header">
+                                <span class="shop-card-name">${skill.name}</span>
+                                <span class="shop-card-cost">${skill.cost} 💰</span>
+                            </div>
+                            <div class="shop-card-desc">${skill.desc}</div>
+                            <div class="shop-card-stats">
+                                <span>⚔️ ${skill.dmg}</span>
+                                <span>⏳ ${skill.text_cd}</span>
+                                <span>🔒 Lv.${skill.minLevel}</span>
+                            </div>
+                        </div>
+                        <button class="shop-buy-btn ${canAfford ? '' : 'disabled'}" 
+                                onclick="buySkill('${skill.id}')"
+                                title="${canAfford ? 'Comprar' : 'Sem Ouro'}">
+                            ${canAfford ? 'COMPRAR' : 'POBRE'}
+                        </button>
+                    `;
+                    list.appendChild(card);
+                });
+            }
+        }
+
+        function buySkill(skillId) {
+            // 1. Validar Habilidade
+            const skill = skillsDB[skillId];
+            if (!skill) return;
+
+            // 2. Verificar se já possui (Anti-Spam Click)
+            if (player.ownedSkills.includes(skillId)) {
+                // Se já tem, tenta atualizar a loja só pra garantir que suma
+                const btn = document.querySelector(`button[onclick="buySkill('${skillId}')"]`);
+                if(btn) {
+                    const card = btn.closest('.shop-card');
+                    if(card) card.remove();
+                }
+                return;
+            }
+
+            // 3. Verificar Ouro
+            if (player.gold < skill.cost) {
+                showRpgAlert("Sem Ouro", "Você não tem ouro suficiente!");
+                return;
+            }
+            
+            // 4. Verificar Nível
+            if (player.level < skill.minLevel) {
+                 showRpgAlert("Nível Baixo", `Você precisa ser nível ${skill.minLevel} para aprender isso!`);
+                 return;
+            }
+
+            // 5. Processar Compra
+            player.gold -= skill.cost;
+            player.ownedSkills.push(skillId);
+            
+            // 6. Atualizar Dados e UI
+            saveGame();
+            renderInterface(); // Update Gold UI
+            
+            // 7. Atualizar Loja Imediatamente (Remove o item da lista)
+            // Tenta filtrar novamente usando a aba ativa atual
+            let activeTab = 'all';
+            if(document.getElementById('shopTabZoran').classList.contains('active')) activeTab = 'zoran';
+            if(document.getElementById('shopTabMagic').classList.contains('active')) activeTab = 'magic';
+            
+            filterShop(activeTab);
+            
+            // 8. Feedback Visual
+            showRpgAlert("Sucesso", `Você adquiriu o conhecimento: \n${skill.name}!`);
+        }
+
+        function closeShopModal() {
+            document.getElementById('shopModal').style.display = 'none';
+        }
+
+        function startCombat(isTest = false) {
+            // Verificar dia da semana (Sexta=5, Sábado=6, Domingo=0)
+            const today = new Date().getDay();
+            const isWeekend = (today === 5 || today === 6 || today === 0);
+
+            if (!isTest && !isWeekend) {
+                showRpgAlert("Calma aí, Guerreiro!", "O Chefe só aparece nos fins de semana (Sexta, Sábado e Domingo)!");
+                return;
+            }
+
+            // Setup Player
+            combatState.active = true;
+            combatState.processingTurn = false; // Prevents spamming
+            combatState.turn = 1;
+            combatState.playerMaxHp = player.hp;
+            combatState.playerHp = player.hp;
+            combatState.cooldowns = {};
+            combatState.effects = { player: {}, boss: {} }; // Track active effects (e.g. {stun: 1})
+            combatState.logs = [];
+
+            // Setup Boss Stats (Status Base vs Player Level)
+            let levelMult = player.level * 20; // +20 HP por level
+            if (isTest) levelMult = 0; 
+            
+            const baseHp = 150 + levelMult;
+            combatState.bossMaxHp = baseHp;
+            combatState.bossHp = baseHp;
+
+            // Sortear 4 habilidades do Boss
+            const shuffledSkills = [...bossSkillPool].sort(() => 0.5 - Math.random());
+            combatState.bossSkills = shuffledSkills.slice(0, 4);
+
+            // Initialize Cooldowns for EQUIPPED skills
+            if (!player.equippedSkills || player.equippedSkills.length === 0) player.equippedSkills = ['soco', 'chute'];
+            player.equippedSkills.forEach(s => combatState.cooldowns[s] = 0);
+
+            // Render UI
+            updateCombatUI();
+            document.getElementById('combatModal').style.display = 'flex';
+            
+            // Show Boss Skills in Log
+            const skillNames = combatState.bossSkills.map(s => s.name).join(", ");
+            addCombatLog("⚔️ O Chefe apareceu com: " + skillNames);
+            
+            if (player.hp <= 0) {
+                addCombatLog("⚠️ Você está sem vida! Cure-se antes de lutar.");
+                setTimeout(surrenderCombat, 2000);
+            }
+        }
+
+        function surrenderCombat() {
+            combatState.active = false;
+            document.getElementById('combatModal').style.display = 'none';
+            if (combatState.bossHp > 0) {
+                showRpgAlert("Fuga", "Você fugiu da batalha! Nenhuma recompensa obtida.");
+            }
+        }
+
+        function useSkill(skillId) {
+            if (!combatState.active) return;
+            if (combatState.processingTurn) return; // Prevent spam
+            if (combatState.playerHp <= 0) return;
+
+             // Check Stun
+            if (combatState.effects.player.stun > 0) {
+                 addCombatLog(`😵 Você está atordoado e não pode agir!`);
+                 return;
+            }
+
+            const skill = skillsDB[skillId];
+            
+            // Check Cooldown
+            if (combatState.cooldowns[skillId] > 0) {
+                addCombatLog(`⏳ ${skill.name} ainda está recarregando! (${combatState.cooldowns[skillId]} turnos)`);
+                return;
+            }
+
+            // Lock Input
+            combatState.processingTurn = true;
+            updateCombatUI(); // Refresh buttons to disabled state
+
+            // Player Action
+            if (skill.id === 'cura') {
+                playAnimation(skill, 'playerEntity', 'playerEntity', () => {
+                     const heal = Math.abs(skill.dmg);
+                     combatState.playerHp = Math.min(combatState.playerMaxHp, combatState.playerHp + heal);
+                     addCombatLog(`💚 Você usou ${skill.name} e recuperou ${heal} HP!`, 'player-dmg');
+                     showFloatingText('playerEntity', `+${heal}`, 'heal');
+                     updateCombatUI();
+
+                     // Passa a vez para o Boss
+                     setTimeout(bossTurn, 500);
+                });
+            } else {
+                 playAnimation(skill, 'playerEntity', 'bossEntity', () => {
+                    // Attack
+                    let dmg = skill.dmg;
+                    // Add Attribute scaling? For now, flat dmg + level
+                    dmg += Math.floor(player.level / 2); // Small scaling
+                    
+                    combatState.bossHp -= dmg;
+                    addCombatLog(`👊 Você usou ${skill.name} causando ${dmg} de dano!`, 'player-dmg');
+                    showFloatingText('bossEntity', `-${dmg}`, 'dmg');
+
+                    // Apply Effect to Boss
+                    if (skill.effect === 'stun') {
+                        combatState.effects.boss.stun = 1; 
+                        addCombatLog(`😵 O Chefe ficou ATORDOADO!`);
+                        showFloatingText('bossEntity', "ATORDOADO!", 'dmg');
+                    }
+
+                    // Apply Effect: Drain (Vampirism)
+                    if (skill.effect === 'drain') {
+                        const healAmount = dmg; // Drena 100% do dano causado
+                        combatState.playerHp = Math.min(combatState.playerMaxHp, combatState.playerHp + healAmount);
+                        addCombatLog(`🩸 ${skill.name} curou você em ${healAmount} HP!`, 'heal');
+                        showFloatingText('playerEntity', `+${healAmount}`, 'heal');
+                    }
+
+                    updateCombatUI();
+
+                     // Check Win inside callback to ensure anim finishes
+                    if (combatState.bossHp <= 0) {
+                        winCombat();
+                        return;
+                    }
+
+                    // Boss Turn
+                    setTimeout(bossTurn, 500);
+                 });
+            }
+
+            // Set CD
+            combatState.cooldowns[skillId] = skill.cd + 1; // +1 because it decrements immediately at end of turn? No, standard logic:
+            // If CD is 0, it stays 0.
+            // If CD is 2, set to 2. Next turn start -> 1. Turn after -> 0 (Ready).
+            // Actually, usually you set CD. Then decrement all CDs at START of turn. 
+            // Let's decrement at end of round.
+            combatState.cooldowns[skillId] = skill.cd; 
+            // If CD is 0, stays 0.
+            // If CD is 2 (Kick). Player uses. CD set to 2.
+            // Boss attacks. 
+            // End of turn (or start of next player turn) -> Decrement all > 0.
+            // So Next turn: CD becomes 1. Still can't use.
+            // Turn after: CD becomes 0. Can use. Correct.
+        }
+
+        function bossTurn() {
+            if (!combatState.active) return;
+
+            // 1. Manage Player Cooldowns (Passing of time)
+             for (let s in combatState.cooldowns) {
+                if (combatState.cooldowns[s] > 0) combatState.cooldowns[s]--;
+            }
+
+            // 2. Check Boss Status
+            if (combatState.effects.boss.stun > 0) {
+                combatState.effects.boss.stun--;
+                addCombatLog(`😵 O Chefe está atordoado e perdeu a vez!`);
+                updateCombatUI();
+                // Pass turn back to player
+                checkPlayerTurnStart(); 
+                return;
+            }
+
+            // Boss Logic: Escolher uma das 4 habilidades
+            const skill = combatState.bossSkills[Math.floor(Math.random() * combatState.bossSkills.length)];
+            
+            playAnimation(skill, 'bossEntity', 'playerEntity', () => {
+                // Dano Base da Skill + Pequeno modificador por level do Boss (Simulado)
+                // Vamos supor que o Boss "upa" com o player
+                const extraDmg = Math.floor(player.level / 2); 
+                const finalDmg = skill.dmg + extraDmg;
+
+                combatState.playerHp -= finalDmg;
+                addCombatLog(`👹 O Chefe usou ${skill.name} (${skill.icon}) e ${skill.msg} [${finalDmg} Dano]`, 'enemy-dmg');
+                showFloatingText('playerEntity', `-${finalDmg}`, 'dmg');
+
+                // Apply Effect to Player
+                if (skill.effect === 'stun') {
+                    combatState.effects.player.stun = 1;
+                    addCombatLog(`😵 Você ficou ATORDOADO!`);
+                    showFloatingText('playerEntity', "ATORDOADO!", 'dmg');
+                }
+
+                updateCombatUI();
+
+                if (combatState.playerHp <= 0) {
+                    loseCombat();
+                    player.hp = 0;
+                    saveGame();
+                    renderInterface();
+                    return;
+                }
+
+                // End of Boss Turn -> Check Player Status
+                checkPlayerTurnStart();
+            });
+        }
+
+        function checkPlayerTurnStart() {
+            // Check Player Status
+            if (combatState.effects.player.stun > 0) {
+                // Player is stunned
+                setTimeout(() => {
+                    addCombatLog(`😵 Você está atordoado e perdeu a vez!`);
+                    combatState.effects.player.stun--;
+                    // Skip back to Boss
+                    setTimeout(bossTurn, 1000);
+                }, 1000);
+            } else {
+                // Unlock Input
+                combatState.processingTurn = false;
+                updateCombatUI();
+                addCombatLog(`👉 Sua vez!`);
+            }
+        }
+
+        // === VISUAL EFFECTS SYSTEM ===
+        function playAnimation(skill, fromId, toId, callback) {
+            const layer = document.getElementById('combatFxLayer');
+            const fromEl = document.getElementById(fromId);
+            const toEl = document.getElementById(toId);
+            
+            if (!fromEl || !toEl) {
+                if(callback) callback();
+                return;
+            }
+
+            // 1. Create Flying Element
+            const flyer = document.createElement('div');
+            flyer.className = 'flying-skill';
+            
+            // Definições de Tempo e Tamanho
+            const flightTime = 1500; // 1.5s (Mais lento para dar para ver)
+            flyer.style.transition = `all ${flightTime}ms linear`; // Movimento linear e suave
+
+            let animInterval = null;
+            let size = 40; // Default size (emoji)
+
+            // Check for Frame Sequence
+            if (skill.animBase && skill.animFrames) {
+                size = 120; // Bem maior para ver os detalhes
+                
+                const img = document.createElement('img');
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'contain';
+                flyer.innerHTML = '';
+                flyer.appendChild(img);
+                
+                flyer.style.width = size + 'px';
+                flyer.style.height = size + 'px';
+
+                let frame = 1;
+                const updateFrame = () => {
+                    img.src = `${skill.animBase}_${frame}.png`;
+                    frame++;
+                    if (frame > skill.animFrames) frame = 1;
+                };
+                
+                updateFrame();
+                // 100ms por frame = 10fps (Animação fluida mas visível)
+                animInterval = setInterval(updateFrame, 100);
+
+            } 
+            // Check for Static Asset
+            else if (skill.asset) {
+                size = 80;
+                flyer.style.width = size + 'px';
+                flyer.style.height = size + 'px';
+                flyer.innerHTML = `<img src="${skill.asset}">`;
+            } else {
+                // Emoji
+                flyer.style.fontSize = '3rem';
+                flyer.innerText = skill.icon;
+            }
+
+            // Get Positions
+            const fromRect = fromEl.getBoundingClientRect();
+            const toRect = toEl.getBoundingClientRect();
+            const containerRect = layer.getBoundingClientRect();
+
+            // Initial Position (Center of Caster)
+            const offsetX = size / 2;
+            const offsetY = size / 2;
+
+            flyer.style.left = (fromRect.left - containerRect.left + fromRect.width/2 - offsetX) + 'px';
+            flyer.style.top = (fromRect.top - containerRect.top + fromRect.height/2 - offsetY) + 'px';
+
+            layer.appendChild(flyer);
+
+            // Force Reflow
+            flyer.offsetHeight; 
+
+            // Animate to Target (Center of Target)
+            flyer.style.left = (toRect.left - containerRect.left + toRect.width/2 - offsetX) + 'px';
+            flyer.style.top = (toRect.top - containerRect.top + toRect.height/2 - offsetY) + 'px';
+            
+            // NAO mudar opacidade para 0, para ver a bola de fogo batendo em cheio!
+            // flyer.style.opacity = '1'; 
+
+            // On Finish
+            setTimeout(() => {
+                if (animInterval) clearInterval(animInterval);
+                if (flyer.parentNode) layer.removeChild(flyer);
+                
+                // Shake Target
+                toEl.classList.add('shake-dmg');
+                setTimeout(() => toEl.classList.remove('shake-dmg'), 500);
+
+                // Flash Screen if Player Hit
+                if (toId === 'playerEntity') {
+                    document.getElementById('combatModal').classList.add('flash-hit');
+                    setTimeout(() => document.getElementById('combatModal').classList.remove('flash-hit'), 400);
+                }
+
+                if (callback) callback();
+
+            }, flightTime); 
+        }
+
+        function showFloatingText(targetId, text, type = 'dmg') {
+             const layer = document.getElementById('combatFxLayer');
+             const target = document.getElementById(targetId);
+             if(!target) return;
+
+             const rect = target.getBoundingClientRect();
+             const containerRect = layer.getBoundingClientRect();
+
+             const float = document.createElement('div');
+             float.className = 'float-dmg ' + (type === 'heal' ? 'float-heal' : '');
+             float.innerText = text;
+             
+             float.style.left = (rect.left - containerRect.left + rect.width/2) + 'px';
+             float.style.top = (rect.top - containerRect.top) + 'px';
+
+             layer.appendChild(float);
+
+             setTimeout(() => {
+                 float.remove();
+             }, 1000);
+        }
+
+        function updateCombatUI() {
+            // Bars
+            const hpPct = Math.max(0, (combatState.playerHp / combatState.playerMaxHp) * 100);
+            document.getElementById('combatPlayerHpBar').style.width = hpPct + '%';
+            document.getElementById('combatPlayerStats').innerText = `HP: ${combatState.playerHp}/${combatState.playerMaxHp}`;
+
+            const bossPct = Math.max(0, (combatState.bossHp / combatState.bossMaxHp) * 100);
+            document.getElementById('combatBossHpBar').style.width = bossPct + '%';
+            document.getElementById('combatBossStats').innerText = `BOSS: ${combatState.bossHp}/${combatState.bossMaxHp}`;
+
+            // Skills Buttons
+            const container = document.getElementById('combatSkills');
+            container.innerHTML = '';
+            
+            // Use Equipped Skills instead of all skills
+            const currentSkills = player.equippedSkills || ['soco', 'chute'];
+            
+            currentSkills.forEach(skillId => {
+                const skill = skillsDB[skillId];
+                if (!skill) return;
+
+                const cd = combatState.cooldowns[skillId] || 0;
+                const btn = document.createElement('button');
+                btn.className = 'skill-btn';
+                // Disable if cooldown OR processing turn
+                const isLocked = cd > 0 || combatState.processingTurn;
+                btn.disabled = isLocked;
+                btn.onclick = () => useSkill(skillId);
+                
+                let cdText = cd > 0 ? `(${cd})` : "";
+                if (combatState.processingTurn) btn.style.opacity = '0.5';
+                
+                btn.innerHTML = `
+                    <div style="font-size: 1.2rem;">${skill.icon}</div>
+                    <div>${skill.name} ${cdText}</div>
+                    <div class="skill-cd">Dano: ${skill.dmg} | CD: ${skill.cd}</div>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function addCombatLog(msg, type = '') {
+            const log = document.getElementById('combatLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerText = msg;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function winCombat() {
+            combatState.active = false;
+            // Reward
+            const goldReward = 50;
+            const xpReward = 100;
+            
+            player.gold += goldReward;
+            gainXp(xpReward);
+            
+            saveGame();
+            renderInterface();
+            
+            setTimeout(() => {
+                document.getElementById('combatModal').style.display = 'none';
+                showRpgAlert("VITÓRIA!", `🏆 Você derrotou o chefe!\n+${xpReward} XP\n+${goldReward} Ouro`);
+            }, 1000);
+        }
+
+        function loseCombat() {
+            combatState.active = false;
+            setTimeout(() => {
+                document.getElementById('combatModal').style.display = 'none';
+                showRpgAlert("DERROTA", "💀 Você foi derrotado...\nRecupere seu HP e tente novamente!");
+            }, 1000);
+        }
+
+        function openHistoryModal() {
+            renderHistory();
+            document.getElementById('historyModal').style.display = 'flex';
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+
+            const completedQuests = quests.filter(q => q.completed).sort((a, b) => b.completedAt - a.completedAt);
+
+            if (completedQuests.length === 0) {
+                list.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">Nenhuma missão completada ainda.</p>';
+                return;
+            }
+
+            completedQuests.forEach(quest => {
+                const date = new Date(quest.completedAt);
+                const dateStr = date.toLocaleDateString('pt-BR');
+                const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-info">
+                        <div class="history-text">${quest.text}</div>
+                        <div class="history-date">Concluído em: ${dateStr} às ${timeStr}</div>
+                    </div>
+                    <div class="history-xp">+${quest.xp} XP</div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function confirmDelete() {
+            if (pendingDeleteIndex === null) return;
+            
+            let penalty = false;
+            if (player.dailyCancellations >= 3) {
+                penalty = true;
+            }
+
+            if (penalty) {
+                player.hp = Math.max(0, player.hp - 5);
+            } else {
+                player.dailyCancellations++;
+            }
+            
+            quests.splice(pendingDeleteIndex, 1);
+            saveGame();
+            renderInterface();
+            renderQuests();
+            closeDeleteModal();
+        }
+
+        // Old delete function removed/replaced
+        // function deleteQuest(event, index) { ... }
+
+        
+
+        function checkGameLoop() {
+            const now = Date.now();
+            let stateChanged = false;
+
+            // 1. HP Regeneration (10 HP per hour)
+            const msPerHour = 3600000;
+            const hoursPassed = Math.floor((now - player.lastHpRegen) / msPerHour);
+            
+            if (hoursPassed >= 1) {
+                const regenAmount = hoursPassed * 10;
+                if (player.hp < player.maxHp) {
+                    player.hp = Math.min(player.maxHp, player.hp + regenAmount);
+                    stateChanged = true;
+                }
+                // Update timestamp, keeping the remainder
+                player.lastHpRegen += hoursPassed * msPerHour;
+            }
+
+            // 2. Daily Reset (Midnight)
+            checkDailyReset();
+
+            // 3. Quest Deadlines (24h)
+            const msPerDay = 86400000;
+            quests.forEach(quest => {
+                if (!quest.completed && !quest.failed) {
+                    // Backwards compatibility for old quests without createdAt
+                    if (!quest.createdAt) quest.createdAt = now;
+
+                    if (now - quest.createdAt > msPerDay) {
+                        quest.failed = true;
+                        player.hp = Math.max(0, player.hp - 15);
+                        showRpgAlert("Missão Falhou!", `⚠️ Missão expirada: "${quest.text}"\nVocê perdeu 15 HP!`);
+                        stateChanged = true;
+                    }
+                }
+            });
+
+            if (stateChanged) {
+                saveGame();
+                renderInterface();
+                renderQuests();
+            }
+        }
+
+        function checkDailyReset() {
+            const now = new Date();
+            const lastReset = new Date(player.lastDailyReset);
+            
+            // Check if it's a different day
+            if (now.getDate() !== lastReset.getDate() || now.getMonth() !== lastReset.getMonth()) {
+                player.dailyCancellations = 0;
+                player.dailyRerollUsed = false; // Reset reroll usage
+                player.lastDailyReset = Date.now();
+                saveGame();
+                console.log("Daily reset triggered");
+                
+                // Trigger daily quest generation on new day
+                checkDailyQuestsGen();
+                checkRoutineSpawn(); // Check for fixed routine tasks
+            }
+        }
+
+        function checkRoutineSpawn() {
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0]; // "YYYY-MM-DD"
+
+            if (player.lastRoutineCheck !== dateStr) {
+                const dayOfWeek = today.getDay(); // 0-6
+                const tasks = weeklyRoutine[dayOfWeek];
+
+                if (tasks && tasks.length > 0) {
+                    let addedCount = 0;
+                    tasks.forEach(task => {
+                        let displayText = task.text;
+                        if (task.startTime && task.endTime) {
+                            displayText += ` (${task.startTime} - ${task.endTime})`;
+                        } else if (task.time) {
+                            displayText += ` (${task.time})`; // Legacy
+                        }
+
+                        quests.push({
+                            text: displayText,
+                            category: task.category,
+                            xp: task.xp || 20, // Default 20 if not saved
+                            completed: false,
+                            createdAt: Date.now(),
+                            failed: false
+                        });
+                        addedCount++;
+                    });
+                    if (addedCount > 0) {
+                        showRpgAlert("Nova Rotina", `📅 ${addedCount} missões da sua rotina foram adicionadas para hoje!`);
+                    }
+                }
+                
+                player.lastRoutineCheck = dateStr;
+                saveGame();
+                renderQuests();
+            }
+        }
+
+        function checkDailyQuestsGen() {
+            const now = new Date();
+            const lastGen = new Date(player.lastDailyQuestGen);
+
+            // Generate if it's a different day from last generation
+            if (now.getDate() !== lastGen.getDate() || now.getMonth() !== lastGen.getMonth() || player.lastDailyQuestGen === 0) {
+                generateDailyQuests();
+                player.lastDailyQuestGen = Date.now();
+                player.dailyRerollUsed = false; // Ensure it's false on generation
+                saveGame();
+            }
+        }
+
+        function generateDailyQuests() {
+            // Shuffle pool
+            const shuffled = [...dailyQuestPool].sort(() => 0.5 - Math.random());
+            // Pick 3 unique
+            dailyQuestsAvailable = shuffled.slice(0, 3);
+            saveGame();
+            renderDailyQuests();
+        }
+
+        function renderDailyQuests() {
+            const container = document.getElementById('dailyQuestsList');
+            container.innerHTML = '';
+            
+            // Render Quest Cards
+            if (dailyQuestsAvailable.length > 0) {
+                dailyQuestsAvailable.forEach((quest, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'daily-quest-card';
+                    card.innerHTML = `
+                        <div class="daily-icon">${quest.icon}</div>
+                        <div class="daily-name">${quest.text}</div>
+                        <div class="daily-category">${quest.category}</div>
+                    `;
+                    card.onclick = () => openDurationModal(index);
+                    container.appendChild(card);
+                });
+
+                // Render Reroll Card (Only valid if we haven't picked a quest yet)
+                const rerollCard = document.createElement('div');
+                if (player.dailyRerollUsed) {
+                    rerollCard.className = 'daily-reroll-card disabled';
+                    rerollCard.innerHTML = `
+                        <div class="reroll-icon">🎲</div>
+                        <div class="reroll-text">Troca<br>Usada</div>
+                    `;
+                } else {
+                    rerollCard.className = 'daily-reroll-card';
+                    rerollCard.innerHTML = `
+                        <div class="reroll-icon">🎲</div>
+                        <div class="reroll-text">Trocar<br>Missões</div>
+                    `;
+                    rerollCard.onclick = openRerollModal;
+                }
+                container.appendChild(rerollCard);
+
+            } else {
+                 container.innerHTML = '<div style="color: #666; width: 100%; margin-bottom: 10px;">Missão diária aceita! Volte amanhã para novas missões.</div>';
+            }
+        }
+
+        function openRerollModal() {
+            document.getElementById('rerollModal').style.display = 'flex';
+        }
+
+        function closeRerollModal() {
+            document.getElementById('rerollModal').style.display = 'none';
+        }
+
+        function confirmReroll() {
+            if (player.dailyRerollUsed) return;
+            
+            player.dailyRerollUsed = true;
+            generateDailyQuests();
+            closeRerollModal();
+        }
+
+        let selectedDailyIndex = null;
+
+        function openDurationModal(index) {
+            selectedDailyIndex = index;
+            const quest = dailyQuestsAvailable[index];
+            document.getElementById('dailyQuestTargetName').innerText = `"${quest.text}"`;
+            
+            const modalTitle = document.querySelector('#durationModal .modal-title');
+            const modalDesc = document.querySelector('#durationModal p:nth-child(2)');
+            const optionsContainer = document.querySelector('#durationModal .duration-options');
+
+            // Verifica se é quantidade (pelo modo ou pelo nome para garantir compatibilidade)
+            const isQuantity = quest.mode === 'quantity' || 
+                               ["Flexões", "Abdominais", "Alongamento", "Beber Água", "Alimentação"].some(k => quest.text.includes(k));
+
+            if (isQuantity) {
+                modalTitle.innerText = "Definir Meta";
+                modalDesc.innerText = "Qual a quantidade/repetições?";
+                optionsContainer.innerHTML = `
+                    <div class="duration-btn" onclick="confirmDailyQuest(5)">
+                        <span class="duration-time">5x</span>
+                        <span class="duration-xp">+20 XP | +14 💰</span>
+                    </div>
+                    <div class="duration-btn" onclick="confirmDailyQuest(10)">
+                        <span class="duration-time">10x</span>
+                        <span class="duration-xp">+45 XP | +19 💰</span>
+                    </div>
+                    <div class="duration-btn" onclick="confirmDailyQuest(20)">
+                        <span class="duration-time">20x</span>
+                        <span class="duration-xp">+95 XP | +29 💰</span>
+                    </div>
+                    <div class="duration-btn" onclick="confirmDailyQuest(30)">
+                        <span class="duration-time">30x</span>
+                        <span class="duration-xp">+150 XP | +40 💰</span>
+                    </div>
+                `;
+            } else {
+                modalTitle.innerText = "Tempo de Dedicação";
+                modalDesc.innerText = "Por quanto tempo você fará esta atividade?";
+                optionsContainer.innerHTML = `
+                    <div class="duration-btn" onclick="confirmDailyQuest(30)">
+                        <span class="duration-time">30m</span>
+                        <span class="duration-xp">+20 XP | +14 💰</span>
+                    </div>
+                    <div class="duration-btn" onclick="confirmDailyQuest(60)">
+                        <span class="duration-time">1h</span>
+                        <span class="duration-xp">+45 XP | +19 💰</span>
+                    </div>
+                    <div class="duration-btn" onclick="confirmDailyQuest(120)">
+                        <span class="duration-time">2h</span>
+                        <span class="duration-xp">+95 XP | +29 💰</span>
+                    </div>
+                    <div class="duration-btn" onclick="confirmDailyQuest(180)">
+                        <span class="duration-time">3h</span>
+                        <span class="duration-xp">+150 XP | +40 💰</span>
+                    </div>
+                `;
+            }
+
+            document.getElementById('durationModal').style.display = 'flex';
+        }
+
+        function closeDurationModal() {
+            document.getElementById('durationModal').style.display = 'none';
+            selectedDailyIndex = null;
+        }
+
+        function confirmDailyQuest(value) {
+            if (selectedDailyIndex === null) return;
+
+            const quest = dailyQuestsAvailable[selectedDailyIndex];
+            
+            let xpReward = 20;
+            let textSuffix = "";
+
+            // Verifica se é quantidade (pelo modo ou pelo nome para garantir compatibilidade)
+            const isQuantity = quest.mode === 'quantity' || 
+                               ["Flexões", "Abdominais", "Alongamento", "Beber Água", "Alimentação"].some(k => quest.text.includes(k));
+
+            if (isQuantity) {
+                // Quantity logic
+                if (value === 5) xpReward = 20;
+                if (value === 10) xpReward = 45;
+                if (value === 20) xpReward = 95;
+                if (value === 30) xpReward = 150;
+                textSuffix = `(${value}x)`;
+            } else {
+                // Time logic (value is minutes)
+                if (value === 30) xpReward = 20;
+                if (value === 60) xpReward = 45;
+                if (value === 120) xpReward = 95;
+                if (value === 180) xpReward = 150;
+                textSuffix = `(${value}min)`;
+            }
+
+            const newQuest = { 
+                text: `${quest.text} ${textSuffix}`, 
+                category: quest.category, 
+                xp: xpReward, 
+                completed: false,
+                createdAt: Date.now(),
+                failed: false
+            }; 
+
+            quests.push(newQuest);
+            
+            // Clear daily quests to allow only one per day
+            dailyQuestsAvailable = [];
+            
+            saveGame();
+            renderQuests();
+            renderDailyQuests();
+            closeDurationModal();
+        }
+
+        // Manual Add Functions Removed //
+        /*
+        let pendingQuestText = "";
+        function openCategoryModal() { ... }
+        function closeCategoryModal() { ... }
+        function confirmAddQuest(category) { ... }
+        */
+
+
+        // --- Routine Logic ---
+        let selectedRoutineDay = 0; // Default Sunday
+
+        function openRoutineModal() {
+            const day = new Date().getDay();
+            switchRoutineDay(day); // Open on current day
+            updateRoutineTasks(); // Populate list based on initial selection
+            document.getElementById('routineModal').style.display = 'flex';
+        }
+
+        function closeRoutineModal() {
+            document.getElementById('routineModal').style.display = 'none';
+        }
+
+        function switchRoutineDay(dayIndex) {
+            selectedRoutineDay = dayIndex;
+            
+            // Update tabs UI
+            document.querySelectorAll('.day-tab').forEach((tab, index) => {
+                if (index === dayIndex) tab.classList.add('active');
+                else tab.classList.remove('active');
+            });
+
+            renderRoutineList();
+        }
+
+        function renderRoutineList() {
+            const list = document.getElementById('routineList');
+            list.innerHTML = '';
+            
+            const tasks = weeklyRoutine[selectedRoutineDay];
+            
+            if (!tasks || tasks.length === 0) {
+                list.innerHTML = '<p style="color: #666; text-align: center; margin-top: 10px; font-size: 0.8rem;">Nada planejado para este dia.</p>';
+            } else {
+                tasks.forEach((task, index) => {
+                    const item = document.createElement('div');
+                    item.className = `routine-item type-${task.category}`;
+                    
+                    let schedule = "";
+                    if (task.startTime && task.endTime) {
+                        schedule = `⏰ ${task.startTime} - ${task.endTime}`;
+                    } else if (task.time) { // Backwards compatibility
+                        schedule = `⏱️ ${task.time}`;
+                    }
+
+                    item.innerHTML = `
+                        <div class="routine-info">
+                            <strong>${task.text}</strong><br>
+                            <span style="font-size:0.7rem; opacity:0.7">${task.category}</span>
+                            ${schedule ? `<br><span style="font-size:0.7rem; color:#ffd700;">${schedule}</span>` : ''}
+                        </div>
+                        <button class="routine-delete" onclick="deleteRoutineItem(${index})">🗑️</button>
+                    `;
+                    list.appendChild(item);
+                });
+            }
+        }
+
+        function addToRoutine() {
+            const categorySelect = document.getElementById('routineCategory');
+            const taskSelect = document.getElementById('routineTaskSelect');
+            const startInput = document.getElementById('routineStart');
+            const endInput = document.getElementById('routineEnd');
+            
+            const category = categorySelect.value;
+            const text = taskSelect.value;
+            const startVal = startInput.value;
+            const endVal = endInput.value;
+            
+            if (!text) {
+                showRpgAlert("Atenção", "Selecione uma atividade!");
+                return;
+            }
+
+            if (!startVal || !endVal) {
+                showRpgAlert("Atenção", "Defina o horário de Início e Fim!");
+                return;
+            }
+
+            if (startVal >= endVal) {
+                showRpgAlert("Erro", "O horário final deve ser depois do inicial!");
+                return;
+            }
+
+            const newTask = {
+                text: text,
+                category: category,
+                startTime: startVal,
+                endTime: endVal,
+                xp: 20
+            };
+
+            weeklyRoutine[selectedRoutineDay].push(newTask);
+            
+            // Sort by start time
+            weeklyRoutine[selectedRoutineDay].sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+            // Check if added to today's active day
+            const todayIndex = new Date().getDay();
+            if (selectedRoutineDay === todayIndex) {
+                // Check if current time is past start time? No, just add it.
+                // Or maybe check if routine spawn already happened? 
+                // We just append to quests for immediate feedback.
+                
+                let displayText = `${newTask.text} (${newTask.startTime} - ${newTask.endTime})`;
+
+                quests.push({
+                    text: displayText,
+                    category: newTask.category,
+                    xp: 20,
+                    completed: false,
+                    createdAt: Date.now(),
+                    failed: false
+                });
+                renderQuests();
+                showRpgAlert("Rotina Atualizada", `"${newTask.text}" adicionado para hoje!\nDas ${newTask.startTime} às ${newTask.endTime}`);
+            }
+            
+            saveGame();
+            renderRoutineList();
+            startInput.value = '';
+            endInput.value = '';
+        }
+
+        function updateRoutineTasks() {
+            const category = document.getElementById('routineCategory').value;
+            const taskSelect = document.getElementById('routineTaskSelect');
+            taskSelect.innerHTML = ''; // Clear current options
+
+            // Filter tasks from the pool matching the category
+            // We use the dailyQuestPool as a source of truth for available tasks
+            const tasks = dailyQuestPool.filter(q => q.category === category);
+
+            // Add extra generic options if needed, but for now use the pool
+            tasks.forEach(task => {
+                const option = document.createElement('option');
+                option.value = task.text; // Value doesn't strictly matter if we use text
+                option.text = task.text;
+                // Add icon if available to text? Selected option usually doesn't show unicode well in some browsers/OS styles, 
+                // but let's try appending icon to text for clarity
+                if(task.icon) option.text = `${task.icon} ${task.text}`;
+                
+                taskSelect.appendChild(option);
+            });
+        }
+
+        function deleteRoutineItem(index) {
+            weeklyRoutine[selectedRoutineDay].splice(index, 1);
+            saveGame();
+            renderRoutineList();
+        }
+        // ---------------------
+
+        function completeQuest(element, quest, index) {
+            if (quest.completed || quest.failed) return;
+
+            quest.completed = true;
+            quest.completedAt = Date.now(); // Save completion time
+            saveGame(); // Save state
+            
+            // Visual update (optional since we re-render, but good for feedback if we didn't)
+            // element.classList.add('completed');
+            
+            // Gain XP
+            gainXp(quest.xp);
+            
+            // Gain Attribute Point
+            player.attributes[quest.category] += 1; // +1 point per task
+
+            // Gain Gold (10 gold per completed quest + bonus for difficulty/xp)
+            const goldEarned = 10 + Math.floor(quest.xp / 5);
+            player.gold += goldEarned;
+            showRpgAlert("Recompensa", `Missão Completada!\n+${quest.xp} XP\n+${goldEarned} Ouro 💰`);
+
+            saveGame(); // Save attributes and XP
+            
+            renderInterface();
+            renderQuests(); // Re-render to remove from list
+        }
+        
+        // --- RPG Alert System ---
+        function showRpgAlert(title, message) {
+            document.getElementById('rpgAlertTitle').innerText = title;
+            document.getElementById('rpgAlertMessage').innerText = message;
+            document.getElementById('rpgAlertModal').style.display = 'flex';
+        }
+
+        function closeRpgAlert() {
+            document.getElementById('rpgAlertModal').style.display = 'none';
+        }
+        // ------------------------
+
+        function gainXp(amount) {
+            player.xp += amount;
+            
+            let levelsGained = 0;
+            while (player.xp >= player.maxXp) {
+                player.xp -= player.maxXp;
+                player.level++;
+                player.maxXp = Math.floor(player.maxXp * 1.2); // Increase XP requirement
+                levelsGained++;
+            }
+
+            if (levelsGained > 0) {
+                updateAvatar();
+                showRpgAlert("LEVEL UP!", `🎉 PARABÉNS! Você subiu ${levelsGained} nível(is) e alcançou o nível ${player.level}!`);
+                checkClassEvolution(); // Check if player can evolve class
+            }
+        }
+
+        function checkClassEvolution() {
+            if (player.level >= 10 && player.class === "Rookie") {
+                // Determine potential classes based on attributes
+                // Simple logic: Highest attribute determines class suggestion
+                // Ideally, we open a Modal for them to choose.
+                openClassSelectionModal();
+            }
+        }
+
+        // New Class Selection Modal Logic would go here
+        function openClassSelectionModal() {
+            // Create modal dynamically if not exists or show existing one
+            // implementing a simple one via RpgAlert for now or detailed later
+            let message = "Você alcançou o Nível 10 e deixou de ser um Novato!\n\n";
+            message += "Escolha seu caminho (Com base nos seus maiores atributos):\n";
+            
+            let strongest = "Equilibrado";
+            let maxVal = 0;
+            if (player.attributes.forca > maxVal) { maxVal = player.attributes.forca; strongest = "Guerreiro"; }
+            if (player.attributes.disciplina > maxVal) { maxVal = player.attributes.disciplina; strongest = "Arqueiro"; }
+            if (player.attributes.inteligencia > maxVal) { maxVal = player.attributes.inteligencia; strongest = "Mago"; }
+            
+            // For now, auto-assign or just alert. Ideally we need buttons.
+            // Let's create a specialized modal for this next.
+            showRpgAlert("Evolução de Classe", `${message}Sua afinidade é: ${strongest}\n(Sistema de escolha de classe em construção!)`);
+        }
+
+        // Admin Functions
+        function addCustomXP() {
+            const input = document.getElementById('adminXpInput');
+            const amount = parseInt(input.value);
+            
+            if (!amount || amount <= 0) {
+                showRpgAlert("Erro", "Digite um valor válido!");
+                return;
+            }
+
+            gainXp(amount);
+            saveGame();
+            renderInterface();
+            showRpgAlert("Sucesso", amount + " XP adicionado!");
+            input.value = "";
+        }
+
+        function addCustomGold() {
+            const input = document.getElementById('adminGoldInput');
+            const amount = parseInt(input.value);
+            
+            if (!amount || amount <= 0) {
+                showRpgAlert("Erro", "Digite um valor de ouro válido!");
+                return;
+            }
+
+            player.gold += amount;
+            saveGame();
+            renderInterface(); // Updates text on screen
+            showRpgAlert("Rico!", amount + " Ouro adicionado!");
+            input.value = "";
+        }
+
+        function toggleAdminModal() {
+            const modal = document.getElementById('adminModal');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function resetXP() {
+            if(!confirm("Tem certeza que deseja resetar seu Nível e XP para 0?")) return;
+            
+            player.xp = 0;
+            player.level = 0;
+            player.maxXp = 100;
+            saveGame();
+            renderInterface();
+            showRpgAlert("Reset", "Nível e XP resetados!");
+            toggleAdminModal();
+        }
+
+        function resetAttributes() {
+            if(!confirm("Tem certeza que deseja zerar seus Atributos?")) return;
+
+            player.attributes.forca = 0;
+            player.attributes.disciplina = 0;
+            player.attributes.inteligencia = 0;
+            saveGame();
+            renderInterface();
+            showRpgAlert("Reset", "Atributos zerados!");
+            toggleAdminModal();
+        }
+
+        function debugAdvanceTime() {
+            // ... (existing code replaced by itself just for location context, will just append function below)
+            const msPerDay = 86400000;
+            player.lastHpRegen -= msPerDay;
+            player.lastDailyReset -= msPerDay;
+            player.lastDailyQuestGen -= msPerDay;
+            player.dailyRerollUsed = false;
+            
+            saveGame();
+            checkDailyQuestsGen();
+            checkGameLoop();
+            renderInterface();
+            renderDailyQuests();
+            showRpgAlert("Viagem no Tempo", "Simulação: 24 horas se passaram!\n- HP Regenerado\n- Missões Expiradas verificadas\n- Troca Diária Resetada\n- Novas Missões Geradas (se necessário)");
+        }
+        
+        // --- Boss Info Logic ---
+        function getBossDetails() {
+            // Logic for different bosses based on level can go here
+            if (player.level <= 10) {
+                return {
+                    name: "Zoran, o Procrastinador",
+                    levelRange: "Lv 0 - 10",
+                    desc: "Um gigante preguiçoso que se alimenta do seu tempo perdido. Derrote-o para provar seu valor!",
+                    pool: bossSkillPool
+                };
+            }
+            // Fallback for higher levels (future update)
+            return {
+                name: "Zoran, o Eterno",
+                levelRange: "Lv 10+",
+                desc: "Zoran evoluiu e ficou mais forte!",
+                pool: bossSkillPool
+            };
+        }
+
+        function showBossInfo() {
+            const boss = getBossDetails();
+            let skillsText = boss.pool.map(s => `🔹 ${s.name}: ${s.dmg} Dano`).join("\n");
+            
+            showRpgAlert(
+                `Info: ${boss.name}`, 
+                `${boss.levelRange}\n\n${boss.desc}\n\n📜 ARSENAL DE HABILIDADES:\n(Ele escolherá 4 aleatórias para o duelo)\n\n${skillsText}`
+            );
+        }
+
+        // --- Boss Timer Logic ---
+        function updateBossTimer() {
+            const today = new Date();
+            const day = today.getDay(); // 0-6 (Sun-Sat)
+            const isWeekend = (day === 5 || day === 6 || day === 0);
+            
+            const btn = document.getElementById('bossEnterBtn');
+            const timerText = document.getElementById('bossTimer');
+            const nameDisplay = document.getElementById('bossNameDisplay');
+            
+            // Update Name dynamically
+            const boss = getBossDetails();
+            nameDisplay.innerText = `👹 ${boss.name}`;
+
+            if (isWeekend) {
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.innerText = "DUELAR AGORA! ⚔️";
+                timerText.innerText = "PORTAL ABERTO!";
+                timerText.style.color = "#ff5252";
+            } else {
+                btn.disabled = true;
+                btn.style.opacity = "0.5";
+                btn.innerText = "BLOQUEADO 🔒";
+                // Calculate time until next Friday 00:00
+                // Friday is day 5.
+                // If today is Monday(1), diff is 4 days.
+                let daysUntilFriday = 5 - day;
+                if (daysUntilFriday <= 0) daysUntilFriday += 7; // Should handle logic above, but for safety
+                
+                // Target is Next Friday at 00:00:00
+                const target = new Date(today);
+                target.setDate(today.getDate() + daysUntilFriday);
+                target.setHours(0, 0, 0, 0);
+
+                const diff = target - today;
+                
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                timerText.innerText = `${d}d ${h}h ${m}m ${s}s`;
+                timerText.style.color = "#ffd700";
+            }
+        }
+
+
+        function fullReset() {
+            if(!confirm("⚠️ PERIGO: Isso apagará TODO o seu progresso, missões e nome. Deseja continuar?")) return;
+
+            localStorage.removeItem('rpg_player');
+            localStorage.removeItem('rpg_quests');
+            localStorage.removeItem('rpg_playerName');
+            
+            alert("Jogo resetado! Você será redirecionado.");
+            window.location.href = 'index.html';
+        }
+
+    </script>
+</body>
+</html>
