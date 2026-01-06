@@ -91,8 +91,9 @@
         .combat-arena {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-end; /* Aligns entities to bottom (ground) */
             padding: 20px;
+            padding-bottom: 40px; /* Space from bottom edge */
             background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('assets/avatars/arena.jpg');
             background-size: cover;
             background-position: center;
@@ -114,12 +115,14 @@
             height: 100px;
             object-fit: contain;
             filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
+            margin-top: 100px; /* Compensates for smaller size so HP bar aligns with Boss */
         }
 
         .boss-avatar {
             width: 150px;
             height: 150px;
             filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.6));
+            margin-top: 50px;
         }
 
         .health-bar-container {
@@ -128,7 +131,7 @@
             background: #333;
             border: 1px solid #555;
             border-radius: 5px;
-            margin-top: 10px;
+            margin-bottom: 5px; /* Space below bar */
             overflow: hidden;
             position: relative;
         }
@@ -140,7 +143,7 @@
         }
 
         .combat-stats {
-            margin-top: 5px;
+            margin-bottom: 5px; /* Space below text */
             font-size: 0.8rem;
             color: white;
             font-weight: bold;
@@ -454,29 +457,31 @@
 
             <div class="modal-title">⚔️ DUELO ⚔️</div>
             
-            <button id="speedToggleBtn" onclick="toggleCombatSpeed()" style="position: absolute; top: 15px; left: 15px; background: #333; color: white; border: 1px solid #777; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 0.8rem; z-index: 200;">1x ⏳</button>
-
+            <button id="speedToggleBtn" class="speed-toggle-btn" onclick="toggleCombatSpeed()" style="position: absolute; top: 15px; right: 15px; padding: 5px 10px; font-size: 1rem; cursor: pointer; background: #333; color: white; border: 1px solid #777; border-radius: 4px; z-index: 10;">
+                1x ⏩
+            </button>
+            
             <div class="combat-container">
                 <div class="combat-arena">
                     <!-- Player -->
                     <div class="combat-entity" id="playerEntity">
-                        <img src="assets/avatars/lv0.gif" id="combatPlayerImg" class="combat-avatar">
+                        <div class="combat-stats" id="combatPlayerStats">HP: 100/100</div>
                         <div class="health-bar-container">
                             <div class="health-bar-fill" id="combatPlayerHpBar" style="width: 100%; background-color: #4caf50;"></div>
                         </div>
-                        <div class="combat-stats" id="combatPlayerStats">HP: 100/100</div>
+                        <img src="assets/avatars/lv0.gif" id="combatPlayerImg" class="combat-avatar">
                     </div>
 
                     <!-- VS -->
-                    <div style="font-size: 2rem; color: #ffd700; font-weight: bold; text-shadow: 2px 2px 0 #000;">VS</div>
+                    <div style="font-size: 2rem; color: #ffd700; font-weight: bold; text-shadow: 2px 2px 0 #000; align-self: center;">VS</div>
 
                     <!-- Boss -->
                     <div class="combat-entity" id="bossEntity">
-                        <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHdubjU3amJ6aXF3aG5oZ2J2aW54aGs2eHhuMDY0aXZyYzF4Y3F1diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKrEzvJbsQN96zC/giphy.gif" id="combatBossImg" class="boss-avatar">
+                        <div class="combat-stats" id="combatBossStats">BOSS: 500/500</div>
                         <div class="health-bar-container">
                             <div class="health-bar-fill" id="combatBossHpBar" style="width: 100%;"></div>
                         </div>
-                        <div class="combat-stats" id="combatBossStats">BOSS: 500/500</div>
+                        <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHdubjU3amJ6aXF3aG5oZ2J2aW54aGs2eHhuMDY0aXZyYzF4Y3F1diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKrEzvJbsQN96zC/giphy.gif" id="combatBossImg" class="boss-avatar">
                     </div>
                 </div>
 
@@ -948,24 +953,8 @@
             bossMaxHp: 100,
             bossSkills: [], 
             cooldowns: {}, 
-            logs: [],
-            speedMultiplier: 1 // 1x is default, can be set to 2x
+            logs: []
         };
-
-        function toggleCombatSpeed() {
-            const btn = document.getElementById('speedToggleBtn');
-            if (combatState.speedMultiplier === 1) {
-                combatState.speedMultiplier = 2;
-                btn.innerText = "2x ⏩";
-                btn.style.background = "#ffd700";
-                btn.style.color = "#000";
-            } else {
-                combatState.speedMultiplier = 1;
-                btn.innerText = "1x ⏳";
-                btn.style.background = "#333";
-                btn.style.color = "#fff";
-            }
-        }
 
 
 
@@ -1174,6 +1163,28 @@
             document.getElementById('shopModal').style.display = 'none';
         }
 
+        function toggleCombatSpeed() {
+             if (!combatState.speedMultiplier) combatState.speedMultiplier = 1;
+ 
+             if (combatState.speedMultiplier === 1) {
+                 combatState.speedMultiplier = 2;
+                 const btn = document.getElementById('speedToggleBtn');
+                 if(btn) {
+                    btn.innerHTML = "2x ⏩";
+                    btn.style.background = "#ff9800";
+                    btn.style.color = "black";
+                 }
+             } else {
+                 combatState.speedMultiplier = 1;
+                 const btn = document.getElementById('speedToggleBtn');
+                 if(btn) {
+                    btn.innerHTML = "1x ⏩";
+                    btn.style.background = "#333";
+                    btn.style.color = "white";
+                 }
+             }
+        }
+
         function startCombat(isTest = false) {
             // Verificar dia da semana (Sexta=5, Sábado=6, Domingo=0)
             const today = new Date().getDay();
@@ -1186,6 +1197,15 @@
 
             // Setup Player
             combatState.active = true;
+            combatState.speedMultiplier = 1; // Default 1x
+            // Reset Button UI
+            const spdBtn = document.getElementById('speedToggleBtn');
+            if(spdBtn) {
+                spdBtn.innerHTML = "1x ⏩";
+                spdBtn.style.background = "#333";
+                spdBtn.style.color = "white";
+            }
+
             combatState.processingTurn = false; // Prevents spamming
             combatState.turn = 1;
             combatState.playerMaxHp = player.hp;
@@ -1218,6 +1238,11 @@
             
             // Update Boss Name in UI (Optional, if you have an element for it)
             // document.getElementById('bossNameDisplay').innerText = bossInstance.name;
+
+            // Set Boss Image Dynamically
+            if(bossInstance.image) {
+                document.getElementById('combatBossImg').src = bossInstance.image;
+            }
 
             document.getElementById('combatModal').style.display = 'flex';
             
@@ -1272,7 +1297,7 @@
                      updateCombatUI();
 
                      // Passa a vez para o Boss
-                     setTimeout(bossTurn, 500 / combatState.speedMultiplier);
+                     setTimeout(bossTurn, 500);
                 });
             } else {
                  playAnimation(skill, 'playerEntity', 'bossEntity', () => {
@@ -1324,7 +1349,7 @@
                     }
 
                     // Boss Turn
-                    setTimeout(bossTurn, 500 / combatState.speedMultiplier);
+                    setTimeout(bossTurn, 500 / (combatState.speedMultiplier || 1));
                  });
             }
 
@@ -1397,6 +1422,7 @@
         }
 
         function checkPlayerTurnStart() {
+            const speed = combatState.speedMultiplier || 1;
             // Check Player Status
             if (combatState.effects.player.stun > 0) {
                 // Player is stunned
@@ -1404,8 +1430,8 @@
                     addCombatLog(`😵 Você está atordoado e perdeu a vez!`);
                     combatState.effects.player.stun--;
                     // Skip back to Boss
-                    setTimeout(bossTurn, 1000);
-                }, 1000);
+                    setTimeout(bossTurn, 1000 / speed);
+                }, 1000 / speed);
             } else {
                 // Unlock Input
                 combatState.processingTurn = false;
@@ -1430,8 +1456,8 @@
             flyer.className = 'flying-skill';
             
             // Definições de Tempo e Tamanho
-            // 1.5s (Default) ou 0.75s (2x Speed)
-            const flightTime = 1500 / combatState.speedMultiplier; 
+            const speed = combatState.speedMultiplier || 1;
+            const flightTime = 1500 / speed; 
             flyer.style.transition = `all ${flightTime}ms linear`; // Movimento linear e suave
 
             let animInterval = null;
@@ -1459,8 +1485,8 @@
                 };
                 
                 updateFrame();
-                // 100ms por frame / Multiplicador
-                animInterval = setInterval(updateFrame, 100 / combatState.speedMultiplier);
+                // 100ms por frame = 10fps (Animação fluida mas visível)
+                animInterval = setInterval(updateFrame, 100 / speed);
 
             }  
             // Check for Static Asset
@@ -1506,12 +1532,12 @@
                 
                 // Shake Target
                 toEl.classList.add('shake-dmg');
-                setTimeout(() => toEl.classList.remove('shake-dmg'), 500 / combatState.speedMultiplier);
+                setTimeout(() => toEl.classList.remove('shake-dmg'), 500);
 
                 // Flash Screen if Player Hit
                 if (toId === 'playerEntity') {
                     document.getElementById('combatModal').classList.add('flash-hit');
-                    setTimeout(() => document.getElementById('combatModal').classList.remove('flash-hit'), 400 / combatState.speedMultiplier);
+                    setTimeout(() => document.getElementById('combatModal').classList.remove('flash-hit'), 400);
                 }
 
                 if (callback) callback();
@@ -2426,30 +2452,20 @@
         // --- Boss Info Logic ---
         function getBossDetails() {
             // Logic for different bosses based on level can go here
-            if (player.level <= 10) {
-                return {
-                    name: "Zoran, o Procrastinador",
-                    levelRange: "Lv 0 - 10",
-                    desc: "Um gigante preguiçoso que se alimenta do seu tempo perdido. Derrote-o para provar seu valor!",
-                    pool: bossSkillPool
-                };
-            }
-            // Fallback for higher levels (future update)
-            return {
-                name: "Zoran, o Eterno",
-                levelRange: "Lv 10+",
-                desc: "Zoran evoluiu e ficou mais forte!",
-                pool: bossSkillPool
-            };
+            // Uses monstersDB (monsters.js) to get data 'zoran'
+            // Since we only have zoran now, we return him.
+            // Future logic: if (player.level > 20) return monstersDB['another_boss'];
+            
+            return monstersDB['zoran'];
         }
 
         function showBossInfo() {
             const boss = getBossDetails();
-            let skillsText = boss.pool.map(s => `🔹 ${s.name}: ${s.dmg} Dano`).join("\n");
+            let skillsText = boss.skills.map(s => `🔹 ${s.name}: ${s.dmg} Dano`).join("\n");
             
             showRpgAlert(
                 `Info: ${boss.name}`, 
-                `${boss.levelRange}\n\n${boss.desc}\n\n📜 ARSENAL DE HABILIDADES:\n(Ele escolherá 4 aleatórias para o duelo)\n\n${skillsText}`
+                `Nível Recomendado: ${player.level}\n\nO destruidor de prazos e sonhos. Derrote-o para provar seu valor!\n\n📜 ARSENAL DE HABILIDADES:\n(Ele usará essas habilidades contra você)\n\n${skillsText}`
             );
         }
 
@@ -2499,6 +2515,10 @@
                 timerText.style.color = "#ffd700";
             }
         }
+        
+        // Start Update Loop for Timer
+        setInterval(updateBossTimer, 1000);
+        updateBossTimer(); // Run once immediately
 
 
         function fullReset() {

@@ -3,6 +3,7 @@
 const monstersDB = {
     'zoran': {
         name: "Zoran, o Destruidor de Prazos",
+        image: "assets/avatars/zoran.png",
         baseHp: 300,
         hpPerLevel: 50,
         hpPerAttr: 5, // HP ganho por cada ponto de atributo do jogador (Auto-scaling)
@@ -48,6 +49,7 @@ function createMonsterInstance(monsterId, playerObj) {
     return {
         id: monsterId,
         name: data.name,
+        image: data.image,
         maxHp: calculatedHp,
         hp: calculatedHp,
         skills: selectedSkills

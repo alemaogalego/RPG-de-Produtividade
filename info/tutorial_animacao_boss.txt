@@ -1,0 +1,89 @@
+COMO CRIAR ANIMAÇÃO DE MOVIMENTO PARA O BOSS (ZORAN)
+
+Para fazer o Boss se mexer usando várias imagens (frames), siga estes passos:
+
+=== 1. PREPARAÇÃO DAS IMAGENS ===
+1. Você precisa de 4 imagens (frames) do Zoran em posições diferentes.
+2. Salve elas na pasta: `assets/avatars/`
+3. Renomeie elas EXATAMENTE assim:
+   - zoran_1.png
+   - zoran_2.png
+   - zoran_3.png
+   - zoran_4.png
+
+=== 2. CONFIGURAR O MONSTERS.JS ===
+Abra o arquivo `monsters.js` e adicione as propriedades `animBase` e `animFrames` no objeto do Zoran:
+
+```javascript
+const monstersDB = {
+    'zoran': {
+        name: "Zoran, o Destruidor de Prazos",
+        image: "assets/avatars/zoran_1.png", // Imagem inicial
+        
+        // --- ADICIONE ESTAS DUAS LINHAS ---
+        animBase: "assets/avatars/zoran", // O prefixo do nome dos arquivos
+        animFrames: 4, // Quantidade total de fotos que você tem
+        // ----------------------------------
+
+        baseHp: 300,
+        // ... restante do código
+    }
+};
+```
+
+E atualize a função `createMonsterInstance` no final do `monsters.js` para retornar esses novos dados:
+
+```javascript
+    return {
+        id: monsterId,
+        name: data.name,
+        image: data.image,
+        
+        // --- ADICIONE ESTAS LINHAS ---
+        animBase: data.animBase,
+        animFrames: data.animFrames,
+        // -----------------------------
+        
+        maxHp: calculatedHp,
+        // ...
+    };
+```
+
+=== 3. CONFIGURAR O MAIN.HTML ===
+Você precisa alterar o código para rodar a animação quando o combate começar e parar quando terminar.
+
+A) Na função `startCombat()` (dentro do main.html):
+Procure onde define a imagem do boss (`document.getElementById('combatBossImg').src = ...`) e substitua por:
+
+```javascript
+            // Set Boss Image Dynamically
+            const bossImg = document.getElementById('combatBossImg');
+            // Limpa animação anterior se houver
+            if (combatState.bossAnimInterval) clearInterval(combatState.bossAnimInterval);
+            
+            if (bossInstance.image) {
+                bossImg.src = bossInstance.image;
+            }
+
+            // INICIAR ANIMAÇÃO (LOOP)
+            if (bossInstance.animBase && bossInstance.animFrames) {
+                let frame = 1;
+                // Velocidade: 200ms = 5 quadros por segundo
+                combatState.bossAnimInterval = setInterval(() => {
+                    frame++;
+                    if (frame > bossInstance.animFrames) frame = 1;
+                    bossImg.src = `${bossInstance.animBase}_${frame}.png`;
+                }, 200);
+            }
+
+            document.getElementById('combatModal').style.display = 'flex';
+```
+
+B) Nas funções de FIM de combate (`surrenderCombat`, `winCombat`, `loseCombat`):
+Adicione esta linha no início de cada uma delas para parar a animação e não pesar o jogo:
+
+```javascript
+    if (combatState.bossAnimInterval) clearInterval(combatState.bossAnimInterval);
+```
+
+Pronto! Assim que você tiver as fotos, é só aplicar essas mudanças no código.
