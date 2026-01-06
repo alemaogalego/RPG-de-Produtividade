@@ -2029,7 +2029,7 @@
             selectedRoutineDay = dayIndex;
             
             // Update tabs UI
-            document.querySelectorAll('.day-tab').forEach((tab, index) => {
+            document.querySelectorAll('#routineModal .day-tab').forEach((tab, index) => {
                 if (index === dayIndex) tab.classList.add('active');
                 else tab.classList.remove('active');
             });
