@@ -23,7 +23,7 @@ Onde você gerencia suas missões, vê seu nível e atributos.
 
 ### ⚔️ Sistema de Combate (Boss Semanal)
 Todo fim de semana, um Chefe aparece. Use as habilidades que você comprou para derrotá-lo!
-![Screenshot do Combate](assets/screenshots/combat_preview.png)
+![Screenshot do Combate](assets/screenshots/combat_preview.gif)
 
 ### 🛒 Loja e Grimório
 Gaste seu ouro suado para comprar novas técnicas como "Bola de Fogo" ou "Kamehameha".
