@@ -11,7 +11,6 @@ O **RPG de Produtividade** é uma aplicação web gamificada projetada para comb
 
 ## 📸 Capturas de Tela (Screenshots)
 
-> *Desenvolvedor: Substitua os caminhos das imagens abaixo pelos prints reais do seu projeto na pasta assets/screenshots!*
 
 ### 🚀 Início da Jornada (Login)
 A tela inicial (`index.html`) onde o herói digita seu nome para criar o save local e iniciar a aventura.
