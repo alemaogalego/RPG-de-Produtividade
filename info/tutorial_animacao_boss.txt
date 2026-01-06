@@ -86,4 +86,4 @@ Adicione esta linha no início de cada uma delas para parar a animação e não 
     if (combatState.bossAnimInterval) clearInterval(combatState.bossAnimInterval);
 ```
 
-Pronto! Assim que você tiver as fotos, é só aplicar essas mudanças no código.
+
