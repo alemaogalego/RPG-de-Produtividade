@@ -569,6 +569,18 @@
         </div>
     </div>
 
+    <!-- Class Selection Modal -->
+    <div id="classSelectionModal" class="modal-overlay">
+        <div class="modal-content" style="width: 700px; max-width: 90vw;">
+            <div class="modal-title">⚔️ Evolução de Classe ⚔️</div>
+            <p style="color: #ffd700; margin-bottom: 20px;">Você superou seus limites de Novato.<br>Escolha seu destino com sabedoria!</p>
+            
+            <div id="classOptions" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <!-- Class cards will be injected here -->
+            </div>
+        </div>
+    </div>
+
     <!-- RPG Alert Modal -->
     <div id="rpgAlertModal" class="modal-overlay" style="z-index: 2000;">
         <div class="modal-content" style="text-align: center; border: 2px solid #ffd700; max-width: 400px;">
@@ -695,15 +707,16 @@
                     delete player.skills; // Remove old field
                 }
                 
+
                 // Ensure defaults if empty
                 if (!player.equippedSkills) player.equippedSkills = ['soco', 'chute'];
-                if (!player.ownedSkills || player.ownedSkills.length < 4) player.ownedSkills = ['soco', 'chute', 'cura', 'foco']; // Give basics
+                if (!player.ownedSkills || player.ownedSkills.length < 2) player.ownedSkills = ['soco', 'chute']; 
                 
             } else {
                 player.name = savedName;
                 // Defaults for new game
                 player.equippedSkills = ['soco', 'chute'];
-                player.ownedSkills = ['soco', 'chute', 'cura', 'foco'];
+                player.ownedSkills = ['soco', 'chute'];
             }
 
             if (savedQuests) {
@@ -2110,7 +2123,7 @@
         }
 
         function checkClassEvolution() {
-            if (player.level >= 10 && player.class === "Rookie") {
+            if (player.level >= 5 && player.class === "Rookie") {
                 // Determine potential classes based on attributes
                 // Simple logic: Highest attribute determines class suggestion
                 // Ideally, we open a Modal for them to choose.
@@ -2118,23 +2131,145 @@
             }
         }
 
-        // New Class Selection Modal Logic would go here
+        // New Class Selection Modal Logic
         function openClassSelectionModal() {
-            // Create modal dynamically if not exists or show existing one
-            // implementing a simple one via RpgAlert for now or detailed later
-            let message = "Você alcançou o Nível 10 e deixou de ser um Novato!\n\n";
-            message += "Escolha seu caminho (Com base nos seus maiores atributos):\n";
+            const modal = document.getElementById('classSelectionModal');
+            const container = document.getElementById('classOptions');
+            container.innerHTML = ''; // Clear previous options
+
+            // Determine affinity (simplificado: maior atributo vence)
+            let strongestAttr = 'none';
+            let maxVal = -1;
             
-            let strongest = "Equilibrado";
-            let maxVal = 0;
-            if (player.attributes.forca > maxVal) { maxVal = player.attributes.forca; strongest = "Guerreiro"; }
-            if (player.attributes.disciplina > maxVal) { maxVal = player.attributes.disciplina; strongest = "Arqueiro"; }
-            if (player.attributes.inteligencia > maxVal) { maxVal = player.attributes.inteligencia; strongest = "Mago"; }
+            // Check max value first
+            if (player.attributes.forca > maxVal) maxVal = player.attributes.forca;
+            if (player.attributes.disciplina > maxVal) maxVal = player.attributes.disciplina;
+            if (player.attributes.inteligencia > maxVal) maxVal = player.attributes.inteligencia;
+
+            // Assign affinity (prioridade arbitrária em caso de empate)
+            if (player.attributes.forca === maxVal) strongestAttr = 'forca';
+            else if (player.attributes.disciplina === maxVal) strongestAttr = 'disciplina';
+            else if (player.attributes.inteligencia === maxVal) strongestAttr = 'inteligencia';
             
-            // For now, auto-assign or just alert. Ideally we need buttons.
-            // Let's create a specialized modal for this next.
-            showRpgAlert("Evolução de Classe", `${message}Sua afinidade é: ${strongest}\n(Sistema de escolha de classe em construção!)`);
+            // Define Classes
+            const classes = [
+                {
+                    id: 'Guerreiro',
+                    name: 'Guerreiro',
+                    icon: '⚔️',
+                    desc: 'Especialista em Força. (Em desenvolvimento)',
+                    affinity: 'forca',
+                    color: '#e74c3c',
+                    locked: true
+                },
+                {
+                    id: 'Arqueiro',
+                    name: 'Arqueiro', 
+                    icon: '🏹',
+                    desc: 'Especialista em Disciplina. (Em desenvolvimento)',
+                    affinity: 'disciplina',
+                    color: '#2ecc71',
+                    locked: true
+                },
+                {
+                    id: 'Mago',
+                    name: 'Mago',
+                    icon: '🔮',
+                    desc: 'Especialista em Inteligência. Mestre das artes arcanas.',
+                    affinity: 'inteligencia',
+                    color: '#3498db',
+                    locked: false
+                }
+            ];
+
+            classes.forEach(cls => {
+                const isRecommended = cls.affinity === strongestAttr && !cls.locked;
+                const card = document.createElement('div');
+                card.style.background = '#2a2a2a';
+                card.style.border = isRecommended ? `2px solid ${cls.color}` : '1px solid #444';
+                if(cls.locked) card.style.border = '1px solid #333';
+                
+                card.style.borderRadius = '8px';
+                card.style.padding = '20px';
+                card.style.width = '200px';
+                
+                card.style.textAlign = 'center';
+                card.style.transition = 'transform 0.2s, box-shadow 0.2s';
+                card.style.position = 'relative';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.alignItems = 'center';
+
+                if (cls.locked) {
+                    card.style.opacity = '0.5';
+                    card.style.cursor = 'not-allowed';
+                    card.style.filter = 'grayscale(1)';
+                } else {
+                    card.style.cursor = 'pointer';
+                }
+
+                if (isRecommended) {
+                    card.style.boxShadow = `0 0 15px ${cls.color}40`;
+                    const badge = document.createElement('div');
+                    badge.innerText = 'RECOMENDADO';
+                    badge.style.position = 'absolute';
+                    badge.style.top = '-10px';
+                    badge.style.background = cls.color;
+                    badge.style.color = 'white';
+                    badge.style.fontSize = '0.7rem';
+                    badge.style.padding = '2px 8px';
+                    badge.style.borderRadius = '4px';
+                    badge.style.fontWeight = 'bold';
+                    card.appendChild(badge);
+                }
+                
+                if (cls.locked) {
+                     const lockBadge = document.createElement('div');
+                     lockBadge.innerText = '🔒';
+                     lockBadge.style.fontSize = '2rem';
+                     lockBadge.style.position = 'absolute';
+                     lockBadge.style.top = '50%';
+                     lockBadge.style.left = '50%';
+                     lockBadge.style.transform = 'translate(-50%, -50%)';
+                     lockBadge.style.textShadow = '0 0 10px #000';
+                     card.appendChild(lockBadge);
+                }
+
+                card.innerHTML += `
+                    <div style="font-size: 3.5rem; margin-bottom: 15px;">${cls.icon}</div>
+                    <div style="font-weight: bold; color: ${cls.color}; font-size: 1.2rem; margin-bottom: 10px;">${cls.name}</div>
+                    <div style="font-size: 0.85rem; color: #ccc; line-height: 1.4;">${cls.desc}</div>
+                `;
+                
+                if (!cls.locked) {
+                    card.onmouseenter = () => { card.style.transform = 'scale(1.05)'; card.style.zIndex = 10; };
+                    card.onmouseleave = () => { card.style.transform = 'scale(1)'; card.style.zIndex = 1; };
+                    card.onclick = () => selectClass(cls.id);
+                }
+                
+                container.appendChild(card);
+            });
+
+            modal.style.display = 'flex';
         }
+
+        function selectClass(className) {
+            if (confirm(`Tem certeza que deseja se tornar um ${className}? Esta escolha definirá seu caminho!`)) {
+                player.class = className;
+                document.getElementById('classSelectionModal').style.display = 'none';
+                
+                // Reward / Feedback
+                let msg = `Você agora é um ${className}!`;
+                if(className === 'Mago') msg += " Seus poderes mágicos aumentaram!";
+                if(className === 'Guerreiro') msg += " Sua força bruta é imbatível!";
+                if(className === 'Arqueiro') msg += " Sua precisão é letal!";
+
+                showRpgAlert("Classe Definida!", msg);
+                renderInterface();
+                saveGame();
+            }
+        }
+
 
         // Admin Functions
         function addCustomXP() {

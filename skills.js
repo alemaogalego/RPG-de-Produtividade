@@ -24,6 +24,21 @@ const skillsDB = {
         desc: "Ataque forte, mas cansa.",
         reqClass: "Any",
         minLevel: 0
+    },
+    'fireball': { 
+        id: 'fireball', 
+        name: "Fireball", 
+        dmg: 20, 
+        cd: 4, 
+        text_cd: "4 Turnos", 
+        icon: "🔥", 
+        cost: 100, 
+        desc: "Lança uma bola de fogo explosiva.",
+        reqClass: "Any",
+        minLevel: 0,
+        animBase: "assets/fx/fireball",
+        animFrames: 8,
+        category: "magic"
     }
     
     // As habilidades foram removidas para reiniciar o progresso e desenvolvimento de novas.

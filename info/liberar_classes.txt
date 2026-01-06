@@ -1,0 +1,41 @@
+COMO LIBERAR AS CLASSES (GUERREIRO E ARQUEIRO)
+
+1. Abra o arquivo `main.html`.
+2. Procure pela função `openClassSelectionModal` (você pode usar Ctrl+F para pesquisar).
+3. Localize a lista const classes = [...].
+4. Encontre os blocos referentes ao 'Guerreiro' e 'Arqueiro'.
+5. Altere a propriedade `locked: true` para `locked: false`.
+
+Exemplo de como deve ficar:
+
+            const classes = [
+                {
+                    id: 'Guerreiro',
+                    name: 'Guerreiro',
+                    icon: '⚔️',
+                    desc: 'Especialista em Força. Ganha bônus de dano físico.', 
+                    affinity: 'forca',
+                    color: '#e74c3c',
+                    locked: false  <--- MUDE AQUI PARA FALSE
+                },
+                {
+                    id: 'Arqueiro',
+                    name: 'Arqueiro', 
+                    icon: '🏹',
+                    desc: 'Especialista em Disciplina. Focado em velocidade e crítico.',
+                    affinity: 'disciplina',
+                    color: '#2ecc71',
+                    locked: false  <--- MUDE AQUI PARA FALSE
+                },
+                {
+                    id: 'Mago',
+                    name: 'Mago',
+                    icon: '🔮',
+                    desc: 'Especialista em Inteligência. Mestre das artes arcanas.',
+                    affinity: 'inteligencia',
+                    color: '#3498db',
+                    locked: false
+                }
+            ];
+
+6. Salve o arquivo. As classes estarão disponíveis imediatamente no jogo.
