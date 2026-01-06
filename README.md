@@ -11,7 +11,11 @@ O **RPG de Produtividade** é uma aplicação web gamificada projetada para comb
 
 ## 📸 Capturas de Tela (Screenshots)
 
-> *Desenvolvedor: Substitua os caminhos das imagens abaixo pelos prints reais do seu projeto para deixar o repositório incrível!*
+> *Desenvolvedor: Substitua os caminhos das imagens abaixo pelos prints reais do seu projeto na pasta assets/screenshots!*
+
+### 🚀 Início da Jornada (Login)
+A tela inicial (`index.html`) onde o herói digita seu nome para criar o save local e iniciar a aventura.
+![Screenshot do Início](assets/screenshots/login_preview.png)
 
 ### 🏠 Painel Principal
 Onde você gerencia suas missões, vê seu nível e atributos.
@@ -106,5 +110,5 @@ RPG-de-Produtividade/
 
 Este projeto é de código aberto. Sinta-se à vontade para contribuir, fazer forks ou usar para organizar sua própria vida!
 
-Criado com ❤️ por [Seu Nome]
+Criado com ❤️ por Lucas César Lorena
 
