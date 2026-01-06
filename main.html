@@ -454,6 +454,8 @@
 
             <div class="modal-title">⚔️ DUELO ⚔️</div>
             
+            <button id="speedToggleBtn" onclick="toggleCombatSpeed()" style="position: absolute; top: 15px; left: 15px; background: #333; color: white; border: 1px solid #777; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 0.8rem; z-index: 200;">1x ⏳</button>
+
             <div class="combat-container">
                 <div class="combat-arena">
                     <!-- Player -->
@@ -591,6 +593,7 @@
     </div>
 
     <script src="skills.js"></script>
+    <script src="monsters.js"></script>
     <script>
         // Game State
         let player = {
@@ -768,17 +771,26 @@
             const img = document.getElementById('avatar');
             const classTitle = document.getElementById('classTitle');
             
-            classTitle.innerText = player.class; // Mostra a classe atual
+            classTitle.innerText = player.class; 
             
-            // Lógica simples de avatar por enquanto (pode ser expandida)
-            if (player.level < 10) {
-                 img.src = "assets/avatars/lv0.gif";
-                 classTitle.style.color = "#aaa"; 
-            } else {
-                // Exemplo de mudança visual baseada na classe
-                if (player.class === 'Guerreiro') classTitle.style.color = '#ff5252';
-                if (player.class === 'Mago') classTitle.style.color = '#448aff';
-                if (player.class === 'Arqueiro') classTitle.style.color = '#69f0ae';
+            // Avatar Logic based on Class
+            if (player.class === 'Mago') {
+                // Uses the new mage gif
+                img.src = "assets/avatars/mage.gif";
+                classTitle.style.color = '#448aff'; // Blue
+            } 
+            else if (player.class === 'Guerreiro') {
+                img.src = "assets/avatars/lv0.gif"; // Mudar futuramente quando tiver o gif do guerreiro
+                classTitle.style.color = '#ff5252'; // Red
+            }
+            else if (player.class === 'Arqueiro') {
+                 img.src = "assets/avatars/lv0.gif"; // Mudar futuramente quando tiver o gif do arqueiro
+                 classTitle.style.color = '#69f0ae'; // Green
+            }
+            else {
+                // Default: Rookie / Lv 0
+                img.src = "assets/avatars/lv0.gif";
+                classTitle.style.color = "#aaa"; 
             }
         }
 
@@ -924,7 +936,8 @@
         }
 
         // --- Combat System ---
-        // Skills are loaded from skills.js (skillsDB and bossSkillPool)
+        // Skills are loaded from skills.js
+        // Bosses are loaded from monsters.js
 
         let combatState = {
             active: false,
@@ -933,10 +946,27 @@
             playerMaxHp: 100,
             bossHp: 100,
             bossMaxHp: 100,
-            bossSkills: [], // As 4 habilidades sorteadas para a luta atual
+            bossSkills: [], 
             cooldowns: {}, 
-            logs: []
+            logs: [],
+            speedMultiplier: 1 // 1x is default, can be set to 2x
         };
+
+        function toggleCombatSpeed() {
+            const btn = document.getElementById('speedToggleBtn');
+            if (combatState.speedMultiplier === 1) {
+                combatState.speedMultiplier = 2;
+                btn.innerText = "2x ⏩";
+                btn.style.background = "#ffd700";
+                btn.style.color = "#000";
+            } else {
+                combatState.speedMultiplier = 1;
+                btn.innerText = "1x ⏳";
+                btn.style.background = "#333";
+                btn.style.color = "#fff";
+            }
+        }
+
 
 
         function openSkillsModal() {
@@ -953,21 +983,32 @@
                 if (!skill) return;
                 
                 const isEquipped = player.equippedSkills.includes(skillId);
+                const allowedClass = !skill.reqClass || skill.reqClass === 'Any' || skill.reqClass === player.class;
 
                 const card = document.createElement('div');
-                card.style.background = isEquipped ? '#1b5e20' : '#333';
-                card.style.border = isEquipped ? '2px solid #4caf50' : '1px solid #555';
+                card.style.background = isEquipped ? '#1b5e20' : (allowedClass ? '#333' : '#222');
+                card.style.border = isEquipped ? '2px solid #4caf50' : (allowedClass ? '1px solid #555' : '1px solid #333');
                 card.style.padding = '10px';
                 card.style.borderRadius = '5px';
-                card.style.cursor = 'pointer';
+                card.style.cursor = allowedClass ? 'pointer' : 'not-allowed';
                 card.style.transition = 'all 0.2s';
-                card.onclick = () => toggleSkillEquip(skillId);
+                card.style.opacity = allowedClass ? '1' : '0.6';
+                
+                if(allowedClass) {
+                    card.onclick = () => toggleSkillEquip(skillId);
+                }
+
+                let reqHtml = '';
+                if(!allowedClass) {
+                     reqHtml = `<div style="font-size: 0.7rem; color: #ff5252; margin-top:5px;">⚠️ Requer: ${skill.reqClass}</div>`;
+                }
 
                 card.innerHTML = `
                     <div style="font-size: 1.5rem;">${skill.icon}</div>
                     <div style="font-weight: bold; color: ${isEquipped ? '#fff' : '#ffd700'};">${skill.name}</div>
                     <div style="font-size: 0.8rem;">Dano: ${skill.dmg} | CD: ${skill.text_cd}</div>
                     <div style="font-size: 0.7rem; color: #aaa;">${skill.desc}</div>
+                    ${reqHtml}
                     ${isEquipped ? '<div style="font-size:0.7rem; color:#4caf50; font-weight:bold; margin-top:5px;">EQUIPADO</div>' : ''}
                 `;
                 list.appendChild(card);
@@ -977,6 +1018,12 @@
         }
 
         function toggleSkillEquip(skillId) {
+            const skill = skillsDB[skillId];
+            if (skill.reqClass && skill.reqClass !== 'Any' && skill.reqClass !== player.class) {
+                showRpgAlert("Classe Incompatível", `Apenas ${skill.reqClass} pode usar esta habilidade!`);
+                return;
+            }
+
             const index = player.equippedSkills.indexOf(skillId);
             
             if (index !== -1) {
@@ -1045,7 +1092,11 @@
                     card.className = "shop-card";
 
                     const canAfford = player.gold >= skill.cost;
+                    const allowedClass = !skill.reqClass || skill.reqClass === 'Any' || skill.reqClass === player.class;
                     
+                    let buyText = canAfford ? 'COMPRAR' : 'POBRE';
+                    if (!allowedClass) buyText = 'BLOQUEADO';
+
                     card.innerHTML = `
                         <div class="shop-card-icon">${skill.icon}</div>
                         <div class="shop-card-content">
@@ -1057,13 +1108,13 @@
                             <div class="shop-card-stats">
                                 <span>⚔️ ${skill.dmg}</span>
                                 <span>⏳ ${skill.text_cd}</span>
-                                <span>🔒 Lv.${skill.minLevel}</span>
+                                <span>🔒 ${!allowedClass ? `<span style="color:#ff5252">Req: ${skill.reqClass}</span>` : `Lv.${skill.minLevel}`}</span>
                             </div>
                         </div>
-                        <button class="shop-buy-btn ${canAfford ? '' : 'disabled'}" 
-                                onclick="buySkill('${skill.id}')"
-                                title="${canAfford ? 'Comprar' : 'Sem Ouro'}">
-                            ${canAfford ? 'COMPRAR' : 'POBRE'}
+                        <button class="shop-buy-btn ${canAfford && allowedClass ? '' : 'disabled'}" 
+                                onclick="${allowedClass ? `buySkill('${skill.id}')` : ''}"
+                                title="${!allowedClass ? `Requer Classe: ${skill.reqClass}` : (canAfford ? 'Comprar' : 'Sem Ouro')}">
+                            ${buyText}
                         </button>
                     `;
                     list.appendChild(card);
@@ -1144,28 +1195,35 @@
             combatState.logs = [];
 
             // Setup Boss Stats (Status Base vs Player Level)
-            let levelMult = player.level * 20; // +20 HP por level
-            if (isTest) levelMult = 0; 
+            // Scaling Aprimorado:
+            // Initializing Boss via MonstersDB
+            const bossInstance = createMonsterInstance('zoran', player);
+            if (!bossInstance) {
+                showRpgAlert("Erro", "Erro ao invocar o Chefe. Relate ao administrador.");
+                combatState.active = false;
+                return;
+            }
+
+            combatState.bossMaxHp = bossInstance.maxHp;
+            combatState.bossHp = bossInstance.hp;
+            combatState.bossSkills = bossInstance.skills;
+            combatState.bossName = bossInstance.name; // Store name
             
-            const baseHp = 150 + levelMult;
-            combatState.bossMaxHp = baseHp;
-            combatState.bossHp = baseHp;
-
-            // Sortear 4 habilidades do Boss
-            const shuffledSkills = [...bossSkillPool].sort(() => 0.5 - Math.random());
-            combatState.bossSkills = shuffledSkills.slice(0, 4);
-
             // Initialize Cooldowns for EQUIPPED skills
             if (!player.equippedSkills || player.equippedSkills.length === 0) player.equippedSkills = ['soco', 'chute'];
             player.equippedSkills.forEach(s => combatState.cooldowns[s] = 0);
 
             // Render UI
             updateCombatUI();
+            
+            // Update Boss Name in UI (Optional, if you have an element for it)
+            // document.getElementById('bossNameDisplay').innerText = bossInstance.name;
+
             document.getElementById('combatModal').style.display = 'flex';
             
             // Show Boss Skills in Log
             const skillNames = combatState.bossSkills.map(s => s.name).join(", ");
-            addCombatLog("⚔️ O Chefe apareceu com: " + skillNames);
+            addCombatLog(`⚔️ ${combatState.bossName} apareceu com: ` + skillNames);
             
             if (player.hp <= 0) {
                 addCombatLog("⚠️ Você está sem vida! Cure-se antes de lutar.");
@@ -1214,18 +1272,33 @@
                      updateCombatUI();
 
                      // Passa a vez para o Boss
-                     setTimeout(bossTurn, 500);
+                     setTimeout(bossTurn, 500 / combatState.speedMultiplier);
                 });
             } else {
                  playAnimation(skill, 'playerEntity', 'bossEntity', () => {
-                    // Attack
-                    let dmg = skill.dmg;
-                    // Add Attribute scaling? For now, flat dmg + level
-                    dmg += Math.floor(player.level / 2); // Small scaling
+                    // Attack Check
+                    let baseDmg = skill.dmg;
+                    let extraDmg = 0;
+
+                    // Attribute Scaling
+                    if (skill.scaling && player.attributes[skill.scaling]) {
+                        // 1 Ponto de Atributo = +1 de Dano (Soma direta conforme solicitado)
+                        extraDmg += player.attributes[skill.scaling];
+                    }
+
+                    // Level Scaling (Pequeno bônus por nível)
+                    extraDmg += Math.floor(player.level / 2); 
                     
-                    combatState.bossHp -= dmg;
-                    addCombatLog(`👊 Você usou ${skill.name} causando ${dmg} de dano!`, 'player-dmg');
-                    showFloatingText('bossEntity', `-${dmg}`, 'dmg');
+                    const totalDmg = baseDmg + extraDmg;
+                    
+                    combatState.bossHp -= totalDmg;
+
+                    // Log mais detalhado
+                    let msg = `👊 Você usou ${skill.name} causando ${totalDmg} de dano!`;
+                    if (extraDmg > 0) msg += ` (Bônus: +${extraDmg})`;
+
+                    addCombatLog(msg, 'player-dmg');
+                    showFloatingText('bossEntity', `-${totalDmg}`, 'dmg');
 
                     // Apply Effect to Boss
                     if (skill.effect === 'stun') {
@@ -1251,7 +1324,7 @@
                     }
 
                     // Boss Turn
-                    setTimeout(bossTurn, 500);
+                    setTimeout(bossTurn, 500 / combatState.speedMultiplier);
                  });
             }
 
@@ -1357,7 +1430,8 @@
             flyer.className = 'flying-skill';
             
             // Definições de Tempo e Tamanho
-            const flightTime = 1500; // 1.5s (Mais lento para dar para ver)
+            // 1.5s (Default) ou 0.75s (2x Speed)
+            const flightTime = 1500 / combatState.speedMultiplier; 
             flyer.style.transition = `all ${flightTime}ms linear`; // Movimento linear e suave
 
             let animInterval = null;
@@ -1385,10 +1459,10 @@
                 };
                 
                 updateFrame();
-                // 100ms por frame = 10fps (Animação fluida mas visível)
-                animInterval = setInterval(updateFrame, 100);
+                // 100ms por frame / Multiplicador
+                animInterval = setInterval(updateFrame, 100 / combatState.speedMultiplier);
 
-            } 
+            }  
             // Check for Static Asset
             else if (skill.asset) {
                 size = 80;
@@ -1432,12 +1506,12 @@
                 
                 // Shake Target
                 toEl.classList.add('shake-dmg');
-                setTimeout(() => toEl.classList.remove('shake-dmg'), 500);
+                setTimeout(() => toEl.classList.remove('shake-dmg'), 500 / combatState.speedMultiplier);
 
                 // Flash Screen if Player Hit
                 if (toId === 'playerEntity') {
                     document.getElementById('combatModal').classList.add('flash-hit');
-                    setTimeout(() => document.getElementById('combatModal').classList.remove('flash-hit'), 400);
+                    setTimeout(() => document.getElementById('combatModal').classList.remove('flash-hit'), 400 / combatState.speedMultiplier);
                 }
 
                 if (callback) callback();

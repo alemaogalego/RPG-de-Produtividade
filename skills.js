@@ -11,7 +11,8 @@ const skillsDB = {
         cost: 0, 
         desc: "Ataque básico rápido.",
         reqClass: "Any", // Disponível para todas as classes
-        minLevel: 0
+        minLevel: 0,
+        scaling: "forca"
     },
     'chute': { 
         id: 'chute', 
@@ -23,8 +24,11 @@ const skillsDB = {
         cost: 0, 
         desc: "Ataque forte, mas cansa.",
         reqClass: "Any",
-        minLevel: 0
+        minLevel: 0,
+        scaling: "forca"
     },
+
+    // === Habilidades de Mago ===
     'fireball': { 
         id: 'fireball', 
         name: "Fireball", 
@@ -34,25 +38,16 @@ const skillsDB = {
         icon: "🔥", 
         cost: 100, 
         desc: "Lança uma bola de fogo explosiva.",
-        reqClass: "Any",
+        reqClass: "Mago",
         minLevel: 0,
         animBase: "assets/fx/fireball",
         animFrames: 8,
-        category: "magic"
+        category: "magic",
+        scaling: "inteligencia"
     }
     
     // As habilidades foram removidas para reiniciar o progresso e desenvolvimento de novas.
 };
 
-// Banco de Habilidades dos Bosses
-// Estrutura: Chave = ID do Boss (ou categoria de level)
-const bossSkillsData = {
-    // Zoran (Lv 0 - 10)
-    'zoran': [
-        { name: "Soco", dmg: 3, icon: "👊", msg: "te acertou um soco direto." }
-    ]
-    // Outros bosses futuros...
-};
 
-// Atalho para o Boss atual usado no main.html
-const bossSkillPool = bossSkillsData['zoran'];
+// (As habilidades dos Bosses foram movidas para monsters.js)
